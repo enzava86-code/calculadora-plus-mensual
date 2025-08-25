@@ -12,7 +12,7 @@ import PlanesPage from './pages/PlanesPage';
 import ConfiguracionPage from './pages/ConfiguracionPage';
 
 // Services
-import { dbService } from '../services/databaseConfig';
+import { dbService } from './services/databaseConfig';
 
 // Types
 import { AppState, NotificationOptions } from './types';
