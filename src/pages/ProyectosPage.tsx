@@ -7,7 +7,8 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   ArrowUpTrayIcon,
-  DocumentArrowDownIcon
+  DocumentArrowDownIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
@@ -30,6 +31,8 @@ export default function ProyectosPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Proyecto | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
+  const [deleteAllLoading, setDeleteAllLoading] = useState(false);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -230,6 +233,21 @@ export default function ProyectosPage() {
     }
   };
 
+  const handleDeleteAllProyectos = async () => {
+    try {
+      setDeleteAllLoading(true);
+      await dbService.clearAllProyectos();
+      setProyectos([]);
+      toast.success('Todos los proyectos han sido eliminados');
+      setShowDeleteAllDialog(false);
+    } catch (error) {
+      console.error('Error deleting all proyectos:', error);
+      toast.error('Error eliminando todos los proyectos');
+    } finally {
+      setDeleteAllLoading(false);
+    }
+  };
+
   const stats = {
     total: proyectos.length,
     activos: proyectos.filter(proyecto => proyecto.estado === 'activo').length,
@@ -283,13 +301,24 @@ export default function ProyectosPage() {
               </button>
             </div>
 
-            <button
-              onClick={() => setShowForm(true)}
-              className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-            >
-              <PlusIcon className="h-5 w-5 mr-2" />
-              Nuevo Proyecto
-            </button>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setShowDeleteAllDialog(true)}
+                disabled={proyectos.length === 0}
+                className="inline-flex items-center px-3 py-2 border border-red-300 shadow-sm text-sm font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <TrashIcon className="h-4 w-4 mr-1" />
+                Borrar Todos
+              </button>
+
+              <button
+                onClick={() => setShowForm(true)}
+                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+              >
+                <PlusIcon className="h-5 w-5 mr-2" />
+                Nuevo Proyecto
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -489,6 +518,17 @@ export default function ProyectosPage() {
         confirmText="Eliminar"
         type="danger"
         loading={deleteLoading}
+      />
+
+      <ConfirmDialog
+        isOpen={showDeleteAllDialog}
+        onClose={() => setShowDeleteAllDialog(false)}
+        onConfirm={handleDeleteAllProyectos}
+        title="⚠️ Eliminar Todos los Proyectos"
+        message={`¿Estás seguro de que quieres eliminar TODOS los proyectos (${proyectos.length} proyectos)? Esta acción no se puede deshacer y eliminará todos los datos de proyectos permanentemente.`}
+        confirmText="Sí, Eliminar Todos"
+        type="danger"
+        loading={deleteAllLoading}
       />
     </div>
   );

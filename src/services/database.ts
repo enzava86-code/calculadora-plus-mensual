@@ -303,6 +303,10 @@ class DatabaseService {
     localStorage.removeItem(this.STORAGE_KEYS.empleados);
   }
 
+  async clearAllProyectos(): Promise<void> {
+    localStorage.removeItem(this.STORAGE_KEYS.proyectos);
+  }
+
   // ESTADÍSTICAS
   async getEstadisticas() {
     const empleados = await this.getEmpleados();
