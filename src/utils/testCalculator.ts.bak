@@ -1,6 +1,6 @@
 // Test utility to verify the calculator functionality
 import { calculadoraService } from '../services/calculadora';
-import { dbService } from '../services/databaseConfig';
+import { dbService } from '../services/database';
 import { OpcionesGeneracion } from '../types/plan';
 
 export async function testCalculatorFlow() {

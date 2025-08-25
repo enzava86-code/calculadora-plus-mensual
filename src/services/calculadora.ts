@@ -8,7 +8,7 @@ import {
 } from '@/types/plan';
 import { Empleado } from '@/types/empleado';
 import { Proyecto } from '@/types/proyecto';
-import { dbService } from './database';
+import { dbService } from './databaseConfig';
 import { calendarioService } from './calendario';
 
 export class CalculadoraPlusService {

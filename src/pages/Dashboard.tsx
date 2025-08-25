@@ -8,7 +8,7 @@ import {
   ClockIcon,
 } from '@heroicons/react/24/outline';
 
-import { dbService } from '../services/database';
+import { dbService } from '../services/databaseConfig';
 // import { calculadoraService } from '../services/calculadora';
 import { calendarioService } from '../services/calendario';
 

@@ -9,7 +9,7 @@ import {
 import { Empleado } from '@/types/empleado';
 import { Proyecto } from '@/types/proyecto';
 import { OpcionesGeneracion, ParametrosCalculo } from '@/types/plan';
-import { dbService } from '../services/databaseConfig';
+import { dbService } from '@/services/database';
 
 interface CalculadoraFormProps {
   onGenerate: (opciones: OpcionesGeneracion) => Promise<void>;

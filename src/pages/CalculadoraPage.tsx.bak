@@ -17,7 +17,7 @@ import PlanDetailModal from '../components/Calculadora/PlanDetailModal';
 // Services and Types
 import { calculadoraService } from '@/services/calculadora';
 import { excelService } from '@/services/excelService';
-import { dbService } from '../services/databaseConfig';
+import { dbService } from '@/services/database';
 import { PlanMensual } from '@/types/plan';
 
 interface ResultadoMasivo {

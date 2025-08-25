@@ -17,7 +17,7 @@ import ConfirmDialog from '../components/Common/ConfirmDialog';
 
 // Types and Services
 import { Empleado, CreateEmpleadoDto, UpdateEmpleadoDto } from '@/types/empleado';
-import { dbService } from '@/services/databaseConfig';
+import { dbService } from '@/services/database';
 import { excelService } from '@/services/excelService';
 
 export default function EmpleadosPage() {
