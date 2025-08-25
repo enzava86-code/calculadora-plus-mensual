@@ -1,0 +1,495 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  BuildingOfficeIcon, 
+  PlusIcon, 
+  MagnifyingGlassIcon,
+  FunnelIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  ArrowUpTrayIcon,
+  DocumentArrowDownIcon
+} from '@heroicons/react/24/outline';
+import toast from 'react-hot-toast';
+
+// Components
+import ProyectosList from '../components/Proyectos/ProyectosList';
+import ProyectoForm from '../components/Proyectos/ProyectoForm';
+import ConfirmDialog from '../components/Common/ConfirmDialog';
+
+// Types and Services
+import { Proyecto, CreateProyectoDto, UpdateProyectoDto } from '@/types/proyecto';
+import { dbService } from '@/services/database';
+import { excelService } from '@/services/excelService';
+
+export default function ProyectosPage() {
+  const [proyectos, setProyectos] = useState<Proyecto[]>([]);
+  const [filteredProyectos, setFilteredProyectos] = useState<Proyecto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editingProyecto, setEditingProyecto] = useState<Proyecto | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<Proyecto | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Filters
+  const [searchTerm, setSearchTerm] = useState('');
+  const [locationFilter, setLocationFilter] = useState<'all' | 'Peninsula' | 'Mallorca'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'activo' | 'inactivo'>('all');
+  const [dietaFilter, setDietaFilter] = useState<'all' | 'con_dieta' | 'sin_dieta'>('all');
+
+  useEffect(() => {
+    loadProyectos();
+  }, []);
+
+  useEffect(() => {
+    applyFilters();
+  }, [proyectos, searchTerm, locationFilter, statusFilter, dietaFilter]);
+
+  const loadProyectos = async () => {
+    try {
+      setLoading(true);
+      const data = await dbService.getProyectos();
+      setProyectos(data);
+    } catch (error) {
+      console.error('Error loading proyectos:', error);
+      toast.error('Error cargando proyectos');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const applyFilters = () => {
+    let filtered = proyectos;
+
+    // Search filter
+    if (searchTerm) {
+      filtered = filtered.filter(proyecto =>
+        proyecto.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (proyecto.cliente && proyecto.cliente.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+
+    // Location filter
+    if (locationFilter !== 'all') {
+      filtered = filtered.filter(proyecto => proyecto.ubicacion === locationFilter);
+    }
+
+    // Status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(proyecto => proyecto.estado === statusFilter);
+    }
+
+    // Dieta filter
+    if (dietaFilter !== 'all') {
+      filtered = filtered.filter(proyecto => 
+        dietaFilter === 'con_dieta' ? proyecto.requiereDieta : !proyecto.requiereDieta
+      );
+    }
+
+    setFilteredProyectos(filtered);
+  };
+
+  const handleCreate = async (data: CreateProyectoDto) => {
+    try {
+      const newProyecto = await dbService.createProyecto(data);
+      setProyectos(prev => [...prev, newProyecto]);
+      toast.success('Proyecto creado correctamente');
+    } catch (error) {
+      console.error('Error creating proyecto:', error);
+      toast.error('Error creando proyecto');
+      throw error;
+    }
+  };
+
+  const handleUpdate = async (data: UpdateProyectoDto) => {
+    if (!editingProyecto) return;
+
+    try {
+      const updatedProyecto = await dbService.updateProyecto(editingProyecto.id, data);
+      setProyectos(prev => prev.map(proyecto => 
+        proyecto.id === editingProyecto.id ? updatedProyecto : proyecto
+      ));
+      toast.success('Proyecto actualizado correctamente');
+    } catch (error) {
+      console.error('Error updating proyecto:', error);
+      toast.error('Error actualizando proyecto');
+      throw error;
+    }
+  };
+
+  const handleEdit = (proyecto: Proyecto) => {
+    setEditingProyecto(proyecto);
+    setShowForm(true);
+  };
+
+  const handleDelete = (proyecto: Proyecto) => {
+    setProjectToDelete(proyecto);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!projectToDelete) return;
+
+    try {
+      setDeleteLoading(true);
+      await dbService.deleteProyecto(projectToDelete.id);
+      setProyectos(prev => prev.filter(proyecto => proyecto.id !== projectToDelete.id));
+      toast.success('Proyecto eliminado correctamente');
+      setShowDeleteDialog(false);
+      setProjectToDelete(null);
+    } catch (error) {
+      console.error('Error deleting proyecto:', error);
+      toast.error('Error eliminando proyecto');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const handleCloseForm = () => {
+    setShowForm(false);
+    setEditingProyecto(null);
+  };
+
+
+  const handleExportProyectos = async () => {
+    try {
+      await excelService.exportarProyectos(proyectos);
+      toast.success('Proyectos exportados correctamente');
+    } catch (error) {
+      console.error('Error exporting proyectos:', error);
+      toast.error('Error exportando proyectos');
+    }
+  };
+
+  const handleDownloadTemplateProyectos = async () => {
+    try {
+      await excelService.generarTemplateProyectos();
+      toast.success('Template descargado correctamente');
+    } catch (error) {
+      console.error('Error downloading template:', error);
+      toast.error('Error descargando template');
+    }
+  };
+
+  const handleImportProyectos = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const { proyectos: proyectosImportados, errores } = await excelService.importarProyectos(file);
+      
+      if (errores.length > 0) {
+        console.error('Errores de importación de proyectos:', errores);
+        toast.error(`Se encontraron ${errores.length} errores. Revisa la consola del navegador (F12) para ver los detalles.`);
+        // Mostrar errores también en un alert para debug
+        alert(`Errores encontrados:\n${errores.join('\n')}`);
+        return;
+      }
+
+      // Crear proyectos válidos evitando duplicados
+      let proyectosCreados = 0;
+      let proyectosDuplicados = 0;
+      
+      for (const proyectoData of proyectosImportados) {
+        if (proyectoData.nombre && proyectoData.ubicacion && proyectoData.distanciaKm !== undefined) {
+          // Verificar si ya existe un proyecto con el mismo nombre y ubicación
+          const proyectoExistente = proyectos.find(proj => 
+            proj.nombre.toLowerCase() === proyectoData.nombre?.toLowerCase() && 
+            proj.ubicacion === proyectoData.ubicacion
+          );
+          
+          if (proyectoExistente) {
+            proyectosDuplicados++;
+            console.log(`Proyecto duplicado encontrado: ${proyectoData.nombre} en ${proyectoData.ubicacion}`);
+          } else {
+            await dbService.createProyecto({
+              nombre: proyectoData.nombre,
+              cliente: proyectoData.cliente || proyectoData.nombre,
+              ubicacion: proyectoData.ubicacion as 'Peninsula' | 'Mallorca',
+              distanciaKm: proyectoData.distanciaKm,
+              descripcion: proyectoData.descripcion || '',
+            });
+            proyectosCreados++;
+          }
+        }
+      }
+
+      await loadProyectos();
+      
+      let mensaje = `${proyectosCreados} proyectos nuevos importados`;
+      if (proyectosDuplicados > 0) {
+        mensaje += `, ${proyectosDuplicados} duplicados omitidos`;
+      }
+      toast.success(mensaje);
+      
+      // Reset input
+      event.target.value = '';
+    } catch (error) {
+      console.error('Error importing proyectos:', error);
+      toast.error('Error importando proyectos');
+    }
+  };
+
+  const stats = {
+    total: proyectos.length,
+    activos: proyectos.filter(proyecto => proyecto.estado === 'activo').length,
+    peninsula: proyectos.filter(proyecto => proyecto.ubicacion === 'Peninsula').length,
+    mallorca: proyectos.filter(proyecto => proyecto.ubicacion === 'Mallorca').length,
+    conDieta: proyectos.filter(proyecto => proyecto.requiereDieta).length,
+    sinDieta: proyectos.filter(proyecto => !proyecto.requiereDieta).length,
+  };
+
+  return (
+    <div>
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <BuildingOfficeIcon className="h-8 w-8 text-green-600 mr-3" />
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Gestión de Proyectos</h1>
+              <p className="text-gray-600">Administrar proyectos, distancias y requisitos de dieta</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-3">
+            {/* Excel Import */}
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handleExportProyectos}
+                disabled={proyectos.length === 0}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <DocumentArrowDownIcon className="h-4 w-4 mr-1" />
+                Exportar
+              </button>
+
+              <label className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 cursor-pointer focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-green-500">
+                <ArrowUpTrayIcon className="h-4 w-4 mr-1" />
+                Importar
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleImportProyectos}
+                  className="sr-only"
+                />
+              </label>
+              
+              <button
+                onClick={handleDownloadTemplateProyectos}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+              >
+                <DocumentArrowDownIcon className="h-4 w-4 mr-1" />
+                Template
+              </button>
+            </div>
+
+            <button
+              onClick={() => setShowForm(true)}
+              className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+            >
+              <PlusIcon className="h-5 w-5 mr-2" />
+              Nuevo Proyecto
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+        <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <BuildingOfficeIcon className="h-8 w-8 text-gray-400" />
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Total</dt>
+                  <dd className="text-lg font-medium text-gray-900">{stats.total}</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="h-8 w-8 bg-green-500 rounded-full flex items-center justify-center">
+                  <CheckCircleIcon className="h-5 w-5 text-white" />
+                </div>
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Activos</dt>
+                  <dd className="text-lg font-medium text-gray-900">{stats.activos}</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="h-8 w-8 bg-blue-500 rounded-full flex items-center justify-center">
+                  <span className="text-xs font-bold text-white">P</span>
+                </div>
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Peninsula</dt>
+                  <dd className="text-lg font-medium text-gray-900">{stats.peninsula}</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="h-8 w-8 bg-purple-500 rounded-full flex items-center justify-center">
+                  <span className="text-xs font-bold text-white">M</span>
+                </div>
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Mallorca</dt>
+                  <dd className="text-lg font-medium text-gray-900">{stats.mallorca}</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Secondary Stats */}
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 mb-8">
+        <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <CheckCircleIcon className="h-8 w-8 text-green-500" />
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Con Dieta</dt>
+                  <dd className="text-lg font-medium text-gray-900">{stats.conDieta}</dd>
+                  <dt className="text-xs text-gray-400">Proyectos &gt; 30km</dt>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <XCircleIcon className="h-8 w-8 text-gray-400" />
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Sin Dieta</dt>
+                  <dd className="text-lg font-medium text-gray-900">{stats.sinDieta}</dd>
+                  <dt className="text-xs text-gray-400">Proyectos &le; 30km</dt>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white shadow rounded-lg p-4 mb-6">
+        <div className="flex flex-col space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-4 sm:space-y-0">
+            <div className="flex-1">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Buscar proyectos o clientes..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                />
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-4 sm:space-y-0">
+            <div className="flex items-center space-x-2">
+              <FunnelIcon className="h-5 w-5 text-gray-400" />
+              <span className="text-sm font-medium text-gray-700">Filtros:</span>
+            </div>
+            
+            <select
+              value={locationFilter}
+              onChange={(e) => setLocationFilter(e.target.value as any)}
+              className="border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500"
+            >
+              <option value="all">Todas las ubicaciones</option>
+              <option value="Peninsula">Peninsula</option>
+              <option value="Mallorca">Mallorca</option>
+            </select>
+            
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as any)}
+              className="border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500"
+            >
+              <option value="all">Todos los estados</option>
+              <option value="activo">Activos</option>
+              <option value="inactivo">Inactivos</option>
+            </select>
+
+            <select
+              value={dietaFilter}
+              onChange={(e) => setDietaFilter(e.target.value as any)}
+              className="border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500"
+            >
+              <option value="all">Todas las dietas</option>
+              <option value="con_dieta">Con dieta</option>
+              <option value="sin_dieta">Sin dieta</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Proyectos List */}
+      <ProyectosList
+        proyectos={filteredProyectos}
+        loading={loading}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+      />
+
+      {/* Forms and Dialogs */}
+      <ProyectoForm
+        proyecto={editingProyecto || undefined}
+        isOpen={showForm}
+        onClose={handleCloseForm}
+        onSubmit={editingProyecto ? handleUpdate as any : handleCreate as any}
+        isEditing={!!editingProyecto}
+      />
+
+      <ConfirmDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={confirmDelete}
+        title="Eliminar Proyecto"
+        message={`¿Estás seguro de que quieres eliminar el proyecto "${projectToDelete?.nombre}"? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        type="danger"
+        loading={deleteLoading}
+      />
+    </div>
+  );
+}
