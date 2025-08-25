@@ -255,7 +255,6 @@ export class ExcelService {
       'Fecha',
       'Día Semana',
       'Proyecto',
-      'Cliente',
       'Distancia (km)',
       'Importe KM (€)',
       'Tiene Dieta',
@@ -271,7 +270,7 @@ export class ExcelService {
         format(dia.fecha, 'dd/MM/yyyy', { locale: es }),
         format(dia.fecha, 'EEEE', { locale: es }),
         dia.proyecto?.nombre || 'Sin proyecto',
-        dia.proyecto?.cliente || '-',
+        '-',
         (dia.distanciaKm || 0).toString(),
         dia.importeKm?.toFixed(2) || '0.00',
         dia.tieneDieta ? 'SÍ' : 'NO',
@@ -302,7 +301,6 @@ export class ExcelService {
       { width: 12 }, // Fecha
       { width: 12 }, // Día
       { width: 20 }, // Proyecto
-      { width: 20 }, // Cliente
       { width: 12 }, // KM
       { width: 12 }, // Importe KM
       { width: 10 }, // Dieta
@@ -321,7 +319,6 @@ export class ExcelService {
     const headers = [
       'Bloque #',
       'Proyecto',
-      'Cliente',
       'Fecha Inicio',
       'Fecha Fin',
       'Días Consecutivos',
@@ -342,7 +339,7 @@ export class ExcelService {
       data.push([
         (index + 1).toString(),
         bloque.proyecto.nombre,
-        bloque.proyecto.cliente || '',
+        '',
         format(bloque.fechaInicio, 'dd/MM/yyyy', { locale: es }),
         format(bloque.fechaFin, 'dd/MM/yyyy', { locale: es }),
         bloque.totalDias.toString(),
@@ -379,7 +376,6 @@ export class ExcelService {
     ws['!cols'] = [
       { width: 8 },  // Bloque #
       { width: 20 }, // Proyecto
-      { width: 20 }, // Cliente
       { width: 12 }, // Fecha Inicio
       { width: 12 }, // Fecha Fin
       { width: 10 }, // Días
@@ -456,7 +452,6 @@ export class ExcelService {
     const headers = [
       'ID',
       'Nombre Proyecto',
-      'Cliente',
       'Ubicación',
       'Distancia (km)',
       'Requiere Dieta',
@@ -472,14 +467,9 @@ export class ExcelService {
       data.push([
         proyecto.id,
         proyecto.nombre,
-        proyecto.cliente || '',
         proyecto.ubicacion,
         proyecto.distanciaKm.toString(),
         proyecto.requiereDieta ? 'SÍ' : 'NO',
-        proyecto.descripcion || '',
-        proyecto.estado,
-        format(proyecto.fechaCreacion, 'dd/MM/yyyy HH:mm', { locale: es }),
-        format(proyecto.fechaModificacion, 'dd/MM/yyyy HH:mm', { locale: es })
       ]);
     });
 
@@ -489,7 +479,6 @@ export class ExcelService {
     ws['!cols'] = [
       { width: 25 }, // ID
       { width: 25 }, // Nombre
-      { width: 25 }, // Cliente
       { width: 12 }, // Ubicación
       { width: 12 }, // Distancia
       { width: 12 }, // Dieta
@@ -605,12 +594,9 @@ export class ExcelService {
               
               const proyecto: Partial<Proyecto> = {
                 nombre: row[0]?.toString().trim(),
-                cliente: row[0]?.toString().trim(), // Usar el nombre del proyecto como cliente por defecto
                 ubicacion: row[1]?.toString().trim() as 'Peninsula' | 'Mallorca',
                 distanciaKm: Number(row[2]) || 25,
                 requiereDieta,
-                descripcion: '',
-                estado: 'activo' as 'activo' | 'inactivo'
               };
               
               console.log(`Proyecto extraído:`, proyecto);

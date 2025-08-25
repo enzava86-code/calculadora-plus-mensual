@@ -109,7 +109,6 @@ export class CalculadoraPlusService {
   ): Promise<Proyecto[]> {
     const todosProyectos = await dbService.getProyectosByUbicacion(ubicacion);
     return todosProyectos.filter(p => 
-      p.estado === 'activo' && 
       !proyectosExcluidos.includes(p.id)
     );
   }

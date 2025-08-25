@@ -68,7 +68,7 @@ export default function ProyectosPage() {
     if (searchTerm) {
       filtered = filtered.filter(proyecto =>
         proyecto.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (proyecto.cliente && proyecto.cliente.toLowerCase().includes(searchTerm.toLowerCase()))
+false
       );
     }
 
@@ -77,10 +77,7 @@ export default function ProyectosPage() {
       filtered = filtered.filter(proyecto => proyecto.ubicacion === locationFilter);
     }
 
-    // Status filter
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(proyecto => proyecto.estado === statusFilter);
-    }
+    // Status filter - removed since projects no longer have estado
 
     // Dieta filter
     if (dietaFilter !== 'all') {
@@ -207,10 +204,8 @@ export default function ProyectosPage() {
           } else {
             await dbService.createProyecto({
               nombre: proyectoData.nombre,
-              cliente: proyectoData.cliente || proyectoData.nombre,
               ubicacion: proyectoData.ubicacion as 'Peninsula' | 'Mallorca',
               distanciaKm: proyectoData.distanciaKm,
-              descripcion: proyectoData.descripcion || '',
             });
             proyectosCreados++;
           }
@@ -250,7 +245,7 @@ export default function ProyectosPage() {
 
   const stats = {
     total: proyectos.length,
-    activos: proyectos.filter(proyecto => proyecto.estado === 'activo').length,
+    // activos: removed since projects no longer have estado
     peninsula: proyectos.filter(proyecto => proyecto.ubicacion === 'Peninsula').length,
     mallorca: proyectos.filter(proyecto => proyecto.ubicacion === 'Mallorca').length,
     conDieta: proyectos.filter(proyecto => proyecto.requiereDieta).length,
@@ -351,8 +346,8 @@ export default function ProyectosPage() {
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Activos</dt>
-                  <dd className="text-lg font-medium text-gray-900">{stats.activos}</dd>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Total</dt>
+                  <dd className="text-lg font-medium text-gray-900">{stats.total}</dd>
                 </dl>
               </div>
             </div>

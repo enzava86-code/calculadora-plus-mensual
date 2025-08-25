@@ -21,7 +21,6 @@ interface DashboardStats {
   };
   proyectos: {
     total: number;
-    activos: number;
     peninsula: number;
     mallorca: number;
   };
@@ -106,8 +105,8 @@ export default function Dashboard() {
       changeType: 'positive',
     },
     {
-      name: 'Proyectos Activos',
-      value: stats?.proyectos.activos || 0,
+      name: 'Total Proyectos',
+      value: stats?.proyectos.total || 0,
       total: stats?.proyectos.total || 0,
       icon: BuildingOfficeIcon,
       color: 'bg-green-500',
