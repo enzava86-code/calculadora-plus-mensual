@@ -76,7 +76,7 @@ class DatabaseService {
 
   async getProyectosByUbicacion(ubicacion: string): Promise<Proyecto[]> {
     const proyectos = await this.getProyectos();
-    return proyectos.filter(p => p.ubicacion === ubicacion && p.estado === 'activo');
+    return proyectos.filter(p => p.ubicacion === ubicacion);
   }
 
   async createProyecto(dto: CreateProyectoDto): Promise<Proyecto> {
@@ -85,9 +85,6 @@ class DatabaseService {
       id: this.generateId(),
       ...dto,
       requiereDieta: dto.distanciaKm > 30, // Automático: >30km requiere dieta
-      estado: 'activo',
-      fechaCreacion: new Date(),
-      fechaModificacion: new Date(),
     };
 
     proyectos.push(nuevoProyecto);
@@ -106,7 +103,6 @@ class DatabaseService {
     const updatedProyecto = {
       ...proyectos[index],
       ...dto,
-      fechaModificacion: new Date(),
     };
 
     // Recalcular dieta si cambió la distancia
@@ -199,8 +195,6 @@ class DatabaseService {
   private parseProyecto(data: any): Proyecto {
     return {
       ...data,
-      fechaCreacion: new Date(data.fechaCreacion),
-      fechaModificacion: new Date(data.fechaModificacion),
     };
   }
 
@@ -268,18 +262,18 @@ class DatabaseService {
   private async createSampleProyectos(): Promise<void> {
     const sampleProyectos: CreateProyectoDto[] = [
       // Peninsula
-      { nombre: 'Hotel Barcelona Centro', ubicacion: 'Peninsula', distanciaKm: 45, cliente: 'Hotel Barcelona S.L.', descripcion: 'Reforma integral hotel céntrico' },
-      { nombre: 'Oficinas Madrid Norte', ubicacion: 'Peninsula', distanciaKm: 25, cliente: 'Empresa Madrid Tech', descripcion: 'Oficinas corporativas' },
-      { nombre: 'Centro Comercial Valencia', ubicacion: 'Peninsula', distanciaKm: 65, cliente: 'Valencia Shopping', descripcion: 'Centro comercial nuevo' },
-      { nombre: 'Residencial Sevilla', ubicacion: 'Peninsula', distanciaKm: 85, cliente: 'Promotora Andaluza', descripcion: 'Complejo residencial' },
-      { nombre: 'Fábrica Castellón', ubicacion: 'Peninsula', distanciaKm: 55, cliente: 'Industrial Cerámica', descripcion: 'Planta industrial' },
+      { nombre: 'Hotel Barcelona Centro', ubicacion: 'Peninsula', distanciaKm: 45 },
+      { nombre: 'Oficinas Madrid Norte', ubicacion: 'Peninsula', distanciaKm: 25 },
+      { nombre: 'Centro Comercial Valencia', ubicacion: 'Peninsula', distanciaKm: 65 },
+      { nombre: 'Residencial Sevilla', ubicacion: 'Peninsula', distanciaKm: 85 },
+      { nombre: 'Fábrica Castellón', ubicacion: 'Peninsula', distanciaKm: 55 },
       
       // Mallorca
-      { nombre: 'Hotel Playa Palma', ubicacion: 'Mallorca', distanciaKm: 15, cliente: 'Cadena Hotelera Balear', descripcion: 'Hotel de playa' },
-      { nombre: 'Apartamentos Alcudia', ubicacion: 'Mallorca', distanciaKm: 35, cliente: 'Turismo Balear S.A.', descripcion: 'Complejo turístico' },
-      { nombre: 'Centro Comercial Inca', ubicacion: 'Mallorca', distanciaKm: 25, cliente: 'Retail Mallorca', descripcion: 'Centro comercial local' },
-      { nombre: 'Resort Cala Millor', ubicacion: 'Mallorca', distanciaKm: 55, cliente: 'Luxury Resorts', descripcion: 'Resort de lujo' },
-      { nombre: 'Oficinas Palma Centro', ubicacion: 'Mallorca', distanciaKm: 8, cliente: 'Servicios Profesionales', descripcion: 'Edificio de oficinas' },
+      { nombre: 'Hotel Playa Palma', ubicacion: 'Mallorca', distanciaKm: 15 },
+      { nombre: 'Apartamentos Alcudia', ubicacion: 'Mallorca', distanciaKm: 35 },
+      { nombre: 'Centro Comercial Inca', ubicacion: 'Mallorca', distanciaKm: 25 },
+      { nombre: 'Resort Cala Millor', ubicacion: 'Mallorca', distanciaKm: 55 },
+      { nombre: 'Oficinas Palma Centro', ubicacion: 'Mallorca', distanciaKm: 8 },
     ];
 
     for (const proyecto of sampleProyectos) {
@@ -322,7 +316,6 @@ class DatabaseService {
       },
       proyectos: {
         total: proyectos.length,
-        activos: proyectos.filter(p => p.estado === 'activo').length,
         peninsula: proyectos.filter(p => p.ubicacion === 'Peninsula').length,
         mallorca: proyectos.filter(p => p.ubicacion === 'Mallorca').length,
       },

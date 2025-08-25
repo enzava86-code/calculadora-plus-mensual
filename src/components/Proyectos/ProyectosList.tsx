@@ -8,8 +8,6 @@ import {
   XCircleIcon
 } from '@heroicons/react/24/outline';
 import { Proyecto } from '@/types/proyecto';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 
 interface ProyectosListProps {
   proyectos: Proyecto[];
@@ -90,19 +88,6 @@ export default function ProyectosList({ proyectos, loading, onEdit, onDelete }: 
                       <p className="text-sm font-medium text-gray-900 mr-2">
                         {proyecto.nombre}
                       </p>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        proyecto.estado === 'activo' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {proyecto.estado === 'activo' ? 'Activo' : 'Inactivo'}
-                      </span>
-                    </div>
-                    <div className="mt-1 text-sm text-gray-600">
-                      <p className="font-medium">{proyecto.cliente}</p>
-                      {proyecto.descripcion && (
-                        <p className="text-gray-500 truncate">{proyecto.descripcion}</p>
-                      )}
                     </div>
                     <div className="mt-2 flex items-center text-sm text-gray-500 space-x-4">
                       <div className="flex items-center">
@@ -125,9 +110,6 @@ export default function ProyectosList({ proyectos, loading, onEdit, onDelete }: 
                             <span>Sin dieta</span>
                           </>
                         )}
-                      </div>
-                      <div>
-                        Creado: {format(proyecto.fechaCreacion, 'dd MMM yyyy', { locale: es })}
                       </div>
                     </div>
                   </div>

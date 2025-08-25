@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   CalculatorIcon, 
   SparklesIcon, 
@@ -6,7 +6,8 @@ import {
   CalendarDaysIcon,
   UsersIcon,
   CurrencyEuroIcon,
-  ClockIcon
+  ClockIcon,
+  Cog6ToothIcon
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
@@ -16,6 +17,7 @@ import PlanDetailModal from '../components/Calculadora/PlanDetailModal';
 // Services and Types
 import { calculadoraService } from '@/services/calculadora';
 import { excelService } from '@/services/excelService';
+import { dbService } from '@/services/database';
 import { PlanMensual } from '@/types/plan';
 
 interface ResultadoMasivo {
@@ -38,12 +40,20 @@ export default function CalculadoraPage() {
   // Formulario simplificado
   const [mes, setMes] = useState(new Date().getMonth() + 1);
   const [año, setAño] = useState(new Date().getFullYear());
+  
+  // Parámetros configurables
+  const [importePorKm, setImportePorKm] = useState(0.42);
+  const [importePorDieta, setImportePorDieta] = useState(25.00);
+  const [parametrosLoading, setParametrosLoading] = useState(false);
 
   const handleGenerateMassive = async () => {
     try {
       setLoading(true);
       
       console.log(`🚀 Generando planes masivos para ${mes}/${año}`);
+      
+      // Asegurar que los parámetros estén actualizados antes del cálculo
+      await handleSaveParametros();
       
       // Generar planes para todos los empleados
       const resultado = await calculadoraService.generarPlanesMasivos(mes, año);
@@ -96,6 +106,40 @@ export default function CalculadoraPage() {
   const handleNewCalculation = () => {
     setResultado(null);
     setSelectedPlan(null);
+  };
+
+  // Cargar parámetros al iniciar
+  useEffect(() => {
+    loadParametros();
+  }, []);
+
+  const loadParametros = async () => {
+    try {
+      const parametros = await dbService.getParametros();
+      setImportePorKm(parametros.importePorKm);
+      setImportePorDieta(parametros.importePorDieta);
+    } catch (error) {
+      console.error('Error loading parameters:', error);
+      toast.error('Error cargando parámetros');
+    }
+  };
+
+  const handleSaveParametros = async () => {
+    try {
+      setParametrosLoading(true);
+      const parametros = await dbService.getParametros();
+      await dbService.saveParametros({
+        ...parametros,
+        importePorKm,
+        importePorDieta
+      });
+      toast.success('Parámetros guardados correctamente');
+    } catch (error) {
+      console.error('Error saving parameters:', error);
+      toast.error('Error guardando parámetros');
+    } finally {
+      setParametrosLoading(false);
+    }
   };
 
   const monthNames = [
@@ -156,6 +200,61 @@ export default function CalculadoraPage() {
           </div>
 
           <div className="p-6">
+            {/* Parámetros de Configuración */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center mb-3">
+                <Cog6ToothIcon className="h-5 w-5 text-blue-600 mr-2" />
+                <h4 className="text-sm font-medium text-blue-800">Configuración de Importes</h4>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-blue-700 mb-1">
+                    Importe por Kilómetro (€)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={importePorKm}
+                    onChange={(e) => setImportePorKm(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-blue-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    placeholder="0.42"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-blue-700 mb-1">
+                    Importe por Dieta (€)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={importePorDieta}
+                    onChange={(e) => setImportePorDieta(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-blue-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    placeholder="25.00"
+                  />
+                </div>
+              </div>
+              
+              <button
+                onClick={handleSaveParametros}
+                disabled={parametrosLoading}
+                className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+              >
+                {parametrosLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Guardando...
+                  </>
+                ) : (
+                  'Guardar Configuración'
+                )}
+              </button>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-md">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

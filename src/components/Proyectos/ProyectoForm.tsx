@@ -15,8 +15,6 @@ export default function ProyectoForm({ proyecto, isOpen, onClose, onSubmit, isEd
     nombre: proyecto?.nombre || '',
     ubicacion: proyecto?.ubicacion || 'Peninsula',
     distanciaKm: proyecto?.distanciaKm || 25,
-    cliente: proyecto?.cliente || '',
-    descripcion: proyecto?.descripcion || '',
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -28,9 +26,6 @@ export default function ProyectoForm({ proyecto, isOpen, onClose, onSubmit, isEd
       newErrors.nombre = 'El nombre del proyecto es obligatorio';
     }
 
-    if (!formData.cliente.trim()) {
-      newErrors.cliente = 'El cliente es obligatorio';
-    }
 
     if (formData.distanciaKm < 1 || formData.distanciaKm > 200) {
       newErrors.distanciaKm = 'La distancia debe estar entre 1km y 200km';
@@ -53,8 +48,6 @@ export default function ProyectoForm({ proyecto, isOpen, onClose, onSubmit, isEd
         nombre: '',
         ubicacion: 'Peninsula',
         distanciaKm: 25,
-        cliente: '',
-        descripcion: '',
       });
       setErrors({});
     } catch (error) {
@@ -69,8 +62,6 @@ export default function ProyectoForm({ proyecto, isOpen, onClose, onSubmit, isEd
       nombre: proyecto?.nombre || '',
       ubicacion: proyecto?.ubicacion || 'Peninsula',
       distanciaKm: proyecto?.distanciaKm || 25,
-      cliente: proyecto?.cliente || '',
-      descripcion: proyecto?.descripcion || '',
     });
     setErrors({});
     onClose();
@@ -125,22 +116,6 @@ export default function ProyectoForm({ proyecto, isOpen, onClose, onSubmit, isEd
                   {errors.nombre && <p className="mt-1 text-sm text-red-600">{errors.nombre}</p>}
                 </div>
 
-                <div>
-                  <label htmlFor="cliente" className="block text-sm font-medium text-gray-700 mb-1">
-                    Cliente *
-                  </label>
-                  <input
-                    type="text"
-                    id="cliente"
-                    value={formData.cliente}
-                    onChange={(e) => setFormData({ ...formData, cliente: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                      errors.cliente ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                    placeholder="Ej: Hotel Barcelona S.L."
-                  />
-                  {errors.cliente && <p className="mt-1 text-sm text-red-600">{errors.cliente}</p>}
-                </div>
 
                 <div>
                   <label htmlFor="ubicacion" className="block text-sm font-medium text-gray-700 mb-1">
@@ -188,19 +163,6 @@ export default function ProyectoForm({ proyecto, isOpen, onClose, onSubmit, isEd
                   </div>
                 </div>
 
-                <div>
-                  <label htmlFor="descripcion" className="block text-sm font-medium text-gray-700 mb-1">
-                    Descripción
-                  </label>
-                  <textarea
-                    id="descripcion"
-                    rows={3}
-                    value={formData.descripcion}
-                    onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Descripción del proyecto (opcional)"
-                  />
-                </div>
 
                 <div className="mt-6 flex justify-end space-x-3">
                   <button
