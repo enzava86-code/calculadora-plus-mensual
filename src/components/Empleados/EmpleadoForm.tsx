@@ -51,8 +51,8 @@ export default function EmpleadoForm({ empleado, isOpen, onClose, onSubmit, isEd
       newErrors.apellidos = 'Los apellidos son obligatorios';
     }
 
-    if (formData.objetivoMensual < 50 || formData.objetivoMensual > 500) {
-      newErrors.objetivoMensual = 'El objetivo debe estar entre 50€ y 500€';
+    if (formData.objetivoMensual < 50 || formData.objetivoMensual > 1500) {
+      newErrors.objetivoMensual = 'El objetivo debe estar entre 50€ y 1500€';
     }
 
     setErrors(newErrors);
@@ -180,7 +180,7 @@ export default function EmpleadoForm({ empleado, isOpen, onClose, onSubmit, isEd
                     type="number"
                     id="objetivoMensual"
                     min="50"
-                    max="500"
+                    max="1500"
                     step="5"
                     value={formData.objetivoMensual}
                     onChange={(e) => setFormData({ ...formData, objetivoMensual: Number(e.target.value) })}
@@ -190,7 +190,7 @@ export default function EmpleadoForm({ empleado, isOpen, onClose, onSubmit, isEd
                     placeholder="200"
                   />
                   {errors.objetivoMensual && <p className="mt-1 text-sm text-red-600">{errors.objetivoMensual}</p>}
-                  <p className="mt-1 text-sm text-gray-500">Entre 50€ y 500€</p>
+                  <p className="mt-1 text-sm text-gray-500">Entre 50€ y 1500€</p>
                 </div>
 
                 <div className="mt-6 flex justify-end space-x-3">

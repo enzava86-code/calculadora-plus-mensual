@@ -731,7 +731,9 @@ export class CalculadoraPlusService {
           const nuevoTotal = totalActual + (dias * proyectoActual.valorPorDia);
           
           // Si ya nos pasamos mucho del objetivo, no seguir con más días
-          if (nuevoTotal - objetivo > parametros.errorMaximoPermitido * 3) {
+          // Para objetivos altos, ser más tolerante proporcionalmente
+          const margenTolerancia = Math.max(parametros.errorMaximoPermitido * 3, objetivo * 0.05); // 5% del objetivo como mínimo
+          if (nuevoTotal - objetivo > margenTolerancia) {
             break;
           }
 
@@ -765,7 +767,9 @@ export class CalculadoraPlusService {
     
     // Si no encontramos una buena solución, usar algoritmo directo más simple
     const diferencia = Math.abs(resultado.total - objetivo);
-    if (diferencia > parametros.errorMaximoPermitido * 2 || resultado.combinacion.length === 0) {
+    // Para objetivos altos, ser más tolerante en el cambio a algoritmo simple
+    const margenCambioAlgoritmo = Math.max(parametros.errorMaximoPermitido * 2, objetivo * 0.03); // 3% del objetivo
+    if (diferencia > margenCambioAlgoritmo || resultado.combinacion.length === 0) {
       console.log(`⚠️ Solución no óptima (${diferencia.toFixed(2)}€), probando algoritmo directo...`);
       resultado = this.algoritmoDirectoSimple(objetivo, diasTotales, proyectosConValor, parametros);
     }
@@ -801,26 +805,79 @@ export class CalculadoraPlusService {
     console.log(`🎯 Valor objetivo por día: ${valorObjetivoPorDia.toFixed(2)}€`);
     console.log(`📊 Proyecto más cercano: ${proyectosOrdenados[0].proyecto.nombre} (${proyectosOrdenados[0].valorPorDia.toFixed(2)}€/día)`);
 
-    // Algoritmo simple: usar el proyecto más cercano al valor objetivo
-    const proyectoOptimo = proyectosOrdenados[0];
-    let diasNecesarios = Math.round(objetivo / proyectoOptimo.valorPorDia);
+    // Algoritmo mejorado para objetivos altos: probar combinaciones múltiples
+    let mejorCombinacion: Array<{proyecto: any, dias: number, valorPorDia: number}> = [];
+    let mejorTotal = 0;
+    let menorDiferencia = Infinity;
     
-    // Respetar límites de bloque
-    diasNecesarios = Math.max(diasNecesarios, parametros.diasMinimosBloque);
-    diasNecesarios = Math.min(diasNecesarios, Math.min(parametros.diasMaximosBloque, diasTotales));
+    // Para objetivos altos (>800€), probar combinaciones de múltiples proyectos
+    if (objetivo > 800 && proyectosOrdenados.length > 1) {
+      console.log('🔍 Objetivo alto detectado, probando combinaciones múltiples...');
+      
+      // Probar combinaciones de los 3 mejores proyectos
+      for (let i = 0; i < Math.min(3, proyectosOrdenados.length); i++) {
+        for (let j = i; j < Math.min(3, proyectosOrdenados.length); j++) {
+          const proy1 = proyectosOrdenados[i];
+          const proy2 = proyectosOrdenados[j];
+          
+          // Calcular días óptimos para cada proyecto
+          let dias1 = Math.max(parametros.diasMinimosBloque, Math.round(objetivo * 0.6 / proy1.valorPorDia));
+          let dias2 = Math.max(parametros.diasMinimosBloque, Math.round(objetivo * 0.4 / proy2.valorPorDia));
+          
+          // Limitar a días disponibles
+          const diasTotalesUsados = dias1 + (i !== j ? dias2 : 0);
+          if (diasTotalesUsados > diasTotales) {
+            const factor = diasTotales / diasTotalesUsados;
+            dias1 = Math.max(parametros.diasMinimosBloque, Math.floor(dias1 * factor));
+            dias2 = Math.max(parametros.diasMinimosBloque, Math.floor(dias2 * factor));
+          }
+          
+          // Limitar por bloque máximo
+          dias1 = Math.min(dias1, parametros.diasMaximosBloque);
+          dias2 = Math.min(dias2, parametros.diasMaximosBloque);
+          
+          const total = dias1 * proy1.valorPorDia + (i !== j ? dias2 * proy2.valorPorDia : 0);
+          const diferencia = Math.abs(total - objetivo);
+          
+          if (diferencia < menorDiferencia) {
+            menorDiferencia = diferencia;
+            mejorTotal = total;
+            mejorCombinacion = i !== j ? 
+              [{proyecto: proy1.proyecto, dias: dias1, valorPorDia: proy1.valorPorDia},
+               {proyecto: proy2.proyecto, dias: dias2, valorPorDia: proy2.valorPorDia}] :
+              [{proyecto: proy1.proyecto, dias: dias1, valorPorDia: proy1.valorPorDia}];
+          }
+        }
+      }
+    }
     
-    const totalCalculado = diasNecesarios * proyectoOptimo.valorPorDia;
-    const diferencia = Math.abs(totalCalculado - objetivo);
-    
-    console.log(`🔧 Solución simple: ${diasNecesarios} días × ${proyectoOptimo.valorPorDia.toFixed(2)}€ = ${totalCalculado.toFixed(2)}€ (diff: ${diferencia.toFixed(2)}€)`);
-
-    return {
-      combinacion: [{
+    // Si no encontramos buena combinación múltiple, usar algoritmo simple
+    if (mejorCombinacion.length === 0 || menorDiferencia > objetivo * 0.1) {
+      const proyectoOptimo = proyectosOrdenados[0];
+      let diasNecesarios = Math.round(objetivo / proyectoOptimo.valorPorDia);
+      
+      // Respetar límites de bloque
+      diasNecesarios = Math.max(diasNecesarios, parametros.diasMinimosBloque);
+      diasNecesarios = Math.min(diasNecesarios, Math.min(parametros.diasMaximosBloque, diasTotales));
+      
+      mejorTotal = diasNecesarios * proyectoOptimo.valorPorDia;
+      mejorCombinacion = [{
         proyecto: proyectoOptimo.proyecto,
         dias: diasNecesarios,
         valorPorDia: proyectoOptimo.valorPorDia
-      }],
-      total: totalCalculado
+      }];
+    }
+    
+    const diferencia = Math.abs(mejorTotal - objetivo);
+    
+    console.log(`🔧 Solución final: ${mejorTotal.toFixed(2)}€ (diff: ${diferencia.toFixed(2)}€) con ${mejorCombinacion.length} proyecto(s)`);
+    mejorCombinacion.forEach(c => {
+      console.log(`  - ${c.proyecto.nombre}: ${c.dias} días × ${c.valorPorDia.toFixed(2)}€ = ${(c.dias * c.valorPorDia).toFixed(2)}€`);
+    });
+
+    return {
+      combinacion: mejorCombinacion,
+      total: mejorTotal
     };
   }
 

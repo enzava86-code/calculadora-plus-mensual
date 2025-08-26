@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Import Test</title>
+</head>
+<body>
+    <h1>Test Import Functionality</h1>
+    <button id="testImport">Test Import</button>
+    <div id="results"></div>
+
+    <script>
+        const API_BASE_URL = '/api';
+        
+        document.getElementById('testImport').addEventListener('click', async function() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>Testing...</p>';
+            
+            const testEmpleado = {
+                nombre: "Test Browser",
+                apellidos: "Direct Call",
+                ubicacion: "Peninsula",
+                objetivoMensual: 300
+            };
+            
+            console.log('🧪 Testing from browser context...');
+            console.log('🔗 API_BASE_URL:', API_BASE_URL);
+            console.log('📝 Test data:', testEmpleado);
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/empleados`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(testEmpleado),
+                });
+                
+                console.log('📊 Response status:', response.status);
+                console.log('📊 Response statusText:', response.statusText);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('❌ API Error Response:', {
+                        status: response.status,
+                        statusText: response.statusText,
+                        body: errorText,
+                        sentData: testEmpleado
+                    });
+                    
+                    results.innerHTML = `<p style="color: red;">❌ Error: ${response.status} ${response.statusText}<br>Response: ${errorText}</p>`;
+                    return;
+                }
+                
+                const data = await response.json();
+                console.log('✅ Success! Employee created:', data);
+                results.innerHTML = `<p style="color: green;">✅ Success! Employee created: ${data.nombre} ${data.apellidos} (ID: ${data.id})</p>`;
+                
+            } catch (error) {
+                console.error('💥 Network/Fetch Error:', error.message);
+                console.error('📍 Error details:', error);
+                results.innerHTML = `<p style="color: red;">💥 Network Error: ${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>
