@@ -852,64 +852,120 @@ export class CalculadoraPlusService {
     parametros: ParametrosCalculo
   ): { combinacion: Array<{proyecto: Proyecto, dias: number, valorPorDia: number}>, total: number } {
     
-    console.log(`🔄 Ejecutando algoritmo de reutilización para objetivo ${objetivo}€`);
+    console.log(`🔄 Ejecutando algoritmo de reutilización CON ALTERNANCIA para objetivo ${objetivo}€`);
+    console.log(`📋 REGLAS: Máximo 5 días consecutivos por proyecto → Mínimo 2 días en proyecto diferente`);
     
-    // 1. Encontrar el proyecto más eficiente para el objetivo
-    const valorObjetivoPorDia = objetivo / diasTotales;
-    const proyectoOptimo = proyectosOrdenados[0]; // Ya está ordenado por eficiencia
-    
-    console.log(`🎯 Proyecto óptimo: ${proyectoOptimo.proyecto.nombre} (${proyectoOptimo.valorPorDia.toFixed(2)}€/día)`);
-    console.log(`📊 Valor objetivo por día: ${valorObjetivoPorDia.toFixed(2)}€/día`);
-    
-    // 2. Calcular cuántos bloques completos necesitamos del proyecto óptimo
-    const diasPorBloque = parametros.diasMaximosBloque; // Usar bloques máximos para optimizar
-    const valorPorBloque = diasPorBloque * proyectoOptimo.valorPorDia;
-    const bloquesCompletos = Math.floor(objetivo / valorPorBloque);
-    let valorAcumulado = bloquesCompletos * valorPorBloque;
-    let diasUsados = bloquesCompletos * diasPorBloque;
-    
-    console.log(`🧮 Bloques completos de ${diasPorBloque} días: ${bloquesCompletos} (${valorAcumulado.toFixed(2)}€)`);
-    
-    const combinacion: Array<{proyecto: Proyecto, dias: number, valorPorDia: number}> = [];
-    
-    // Agregar bloques completos
-    for (let i = 0; i < bloquesCompletos; i++) {
-      combinacion.push({
-        proyecto: proyectoOptimo.proyecto,
-        dias: diasPorBloque,
-        valorPorDia: proyectoOptimo.valorPorDia
-      });
+    // 1. Validar que tenemos suficientes proyectos para alternar
+    if (proyectosOrdenados.length < 2) {
+      console.log(`⚠️ Se necesitan al menos 2 proyectos para aplicar alternancia, fallback a algoritmo básico`);
+      return this.algoritmoBasico(objetivo, diasTotales, proyectosOrdenados, parametros);
     }
+
+    // 2. Constantes de alternancia según reglas de negocio
+    const MAX_DIAS_CONSECUTIVOS = 5;
+    const MIN_DIAS_ALTERNANCIA = 2;
+    const valorObjetivoPorDia = objetivo / diasTotales;
     
-    // 3. Calcular lo que falta para alcanzar el objetivo
-    const objetivoRestante = objetivo - valorAcumulado;
-    const diasRestantes = diasTotales - diasUsados;
+    // 3. Seleccionar los dos mejores proyectos para alternancia
+    const proyectoPrimario = proyectosOrdenados[0];  // El más eficiente
+    const proyectoSecundario = proyectosOrdenados[1]; // El segundo mejor
     
-    console.log(`📐 Objetivo restante: ${objetivoRestante.toFixed(2)}€, Días disponibles: ${diasRestantes}`);
+    console.log(`🥇 Proyecto primario: ${proyectoPrimario.proyecto.nombre} (${proyectoPrimario.valorPorDia.toFixed(2)}€/día)`);
+    console.log(`🥈 Proyecto secundario: ${proyectoSecundario.proyecto.nombre} (${proyectoSecundario.valorPorDia.toFixed(2)}€/día)`);
     
-    if (objetivoRestante > 0 && diasRestantes > 0) {
-      // 4. Optimizar el resto con el mejor ajuste posible
-      let mejorOpcionRestante = this.optimizarRestoObjetivo(
-        objetivoRestante,
-        diasRestantes,
-        proyectosOrdenados,
-        parametros
-      );
+    // 4. Crear patrón de alternancia optimizado
+    const combinacion: Array<{proyecto: Proyecto, dias: number, valorPorDia: number}> = [];
+    let valorAcumulado = 0;
+    let diasUsados = 0;
+    let proyectoActual = proyectoPrimario; // Empezar con el mejor
+    let diasConsecutivosActual = 0;
+    let requiereAlternancia = false;
+
+    // 5. Algoritmo de alternancia inteligente
+    while (diasUsados < diasTotales) {
+      const diasRestantes = diasTotales - diasUsados;
+      let diasEnEsteBloque: number;
+
+      // Determinar cuántos días asignar en este bloque
+      if (requiereAlternancia) {
+        // Estamos en alternancia forzosa, usar mínimo 2 días
+        diasEnEsteBloque = Math.max(MIN_DIAS_ALTERNANCIA, 
+          Math.min(parametros.diasMinimosBloque, diasRestantes));
+      } else {
+        // Podemos usar hasta el máximo permitido
+        diasEnEsteBloque = Math.min(MAX_DIAS_CONSECUTIVOS, diasRestantes);
+        
+        // Pero también considerar el objetivo restante
+        const objetivoRestante = objetivo - valorAcumulado;
+        const diasOptimos = Math.round(objetivoRestante / proyectoActual.valorPorDia);
+        
+        if (diasOptimos > 0 && diasOptimos < diasEnEsteBloque) {
+          diasEnEsteBloque = Math.max(parametros.diasMinimosBloque, 
+            Math.min(diasOptimos, diasEnEsteBloque));
+        }
+      }
+
+      // Validar que el bloque sea válido
+      if (diasEnEsteBloque < parametros.diasMinimosBloque && diasRestantes >= parametros.diasMinimosBloque) {
+        diasEnEsteBloque = parametros.diasMinimosBloque;
+      }
       
-      if (mejorOpcionRestante) {
-        combinacion.push(...mejorOpcionRestante.bloques);
-        valorAcumulado += mejorOpcionRestante.valor;
-        console.log(`✅ Resto optimizado: +${mejorOpcionRestante.valor.toFixed(2)}€`);
+      if (diasEnEsteBloque > diasRestantes) {
+        diasEnEsteBloque = diasRestantes;
+      }
+
+      // Agregar bloque a la combinación
+      if (diasEnEsteBloque > 0) {
+        const valorBloque = diasEnEsteBloque * proyectoActual.valorPorDia;
+        
+        combinacion.push({
+          proyecto: proyectoActual.proyecto,
+          dias: diasEnEsteBloque,
+          valorPorDia: proyectoActual.valorPorDia
+        });
+        
+        valorAcumulado += valorBloque;
+        diasUsados += diasEnEsteBloque;
+        diasConsecutivosActual += diasEnEsteBloque;
+        
+        console.log(`📅 Bloque ${combinacion.length}: ${proyectoActual.proyecto.nombre} × ${diasEnEsteBloque} días = ${valorBloque.toFixed(2)}€`);
+      }
+
+      // 6. Lógica de alternancia
+      if (diasConsecutivosActual >= MAX_DIAS_CONSECUTIVOS) {
+        // Forzar cambio de proyecto
+        proyectoActual = proyectoActual === proyectoPrimario ? proyectoSecundario : proyectoPrimario;
+        diasConsecutivosActual = 0;
+        requiereAlternancia = true;
+        console.log(`🔄 ALTERNANCIA FORZADA → Cambiando a ${proyectoActual.proyecto.nombre}`);
+      } else if (requiereAlternancia && diasConsecutivosActual >= MIN_DIAS_ALTERNANCIA) {
+        // Ya completamos el mínimo de alternancia, podemos volver al primario si es mejor
+        requiereAlternancia = false;
+        proyectoActual = proyectoPrimario; // Volver al proyecto más eficiente
+        diasConsecutivosActual = 0;
+        console.log(`↩️ ALTERNANCIA COMPLETADA → Volviendo a ${proyectoActual.proyecto.nombre}`);
+      }
+
+      // Prevenir bucles infinitos
+      if (diasEnEsteBloque === 0) {
+        console.log(`⚠️ No se pueden asignar más días, terminando algoritmo`);
+        break;
       }
     }
-    
+
     const totalFinal = valorAcumulado;
     const diferencia = Math.abs(totalFinal - objetivo);
     const porcentajeError = (diferencia / objetivo) * 100;
     
-    console.log(`🎯 RESULTADO: ${totalFinal.toFixed(2)}€ vs objetivo ${objetivo}€`);
+    // 7. Mostrar resumen con patrón de alternancia
+    console.log(`\n🎯 RESULTADO CON ALTERNANCIA:`);
+    console.log(`💰 Total: ${totalFinal.toFixed(2)}€ vs objetivo ${objetivo}€`);
     console.log(`📊 Error: ${diferencia.toFixed(2)}€ (${porcentajeError.toFixed(2)}%)`);
-    console.log(`🔢 Bloques: ${combinacion.length} (${combinacion.reduce((sum, b) => sum + b.dias, 0)}/${diasTotales} días)`);
+    console.log(`📅 Días usados: ${diasUsados}/${diasTotales}`);
+    console.log(`🔢 Bloques generados: ${combinacion.length}`);
+    
+    // Verificar patrón de alternancia
+    this.validarPatronAlternancia(combinacion, MAX_DIAS_CONSECUTIVOS);
     
     return { combinacion, total: totalFinal };
   }
@@ -989,6 +1045,84 @@ export class CalculadoraPlusService {
     }
     
     return null;
+  }
+
+  /**
+   * Valida que el patrón de alternancia cumple las reglas de negocio
+   */
+  private validarPatronAlternancia(
+    combinacion: Array<{proyecto: Proyecto, dias: number, valorPorDia: number}>, 
+    maxDiasConsecutivos: number
+  ): void {
+    console.log(`\n🔍 VALIDANDO PATRÓN DE ALTERNANCIA:`);
+    
+    let proyectoAnterior: Proyecto | null = null;
+    let diasConsecutivos = 0;
+    let violaciones = 0;
+
+    for (let i = 0; i < combinacion.length; i++) {
+      const bloque = combinacion[i];
+      
+      if (proyectoAnterior && proyectoAnterior.id === bloque.proyecto.id) {
+        // Mismo proyecto que el anterior
+        diasConsecutivos += bloque.dias;
+        
+        if (diasConsecutivos > maxDiasConsecutivos) {
+          console.log(`❌ VIOLACIÓN: ${bloque.proyecto.nombre} usado ${diasConsecutivos} días consecutivos (máximo ${maxDiasConsecutivos})`);
+          violaciones++;
+        }
+      } else {
+        // Proyecto diferente, reiniciar contador
+        if (proyectoAnterior) {
+          console.log(`✅ Alternancia correcta: ${proyectoAnterior.nombre} → ${bloque.proyecto.nombre}`);
+        }
+        diasConsecutivos = bloque.dias;
+      }
+      
+      proyectoAnterior = bloque.proyecto;
+    }
+
+    if (violaciones === 0) {
+      console.log(`🎉 PATRÓN VÁLIDO: Todas las reglas de alternancia se cumplen`);
+    } else {
+      console.log(`⚠️ PATRÓN INVÁLIDO: ${violaciones} violación(es) detectadas`);
+    }
+  }
+
+  /**
+   * Algoritmo básico como fallback cuando no se puede aplicar alternancia
+   */
+  private algoritmoBasico(
+    objetivo: number,
+    diasTotales: number,
+    proyectosOrdenados: Array<{proyecto: Proyecto, valorPorDia: number, eficiencia: number}>,
+    parametros: ParametrosCalculo
+  ): { combinacion: Array<{proyecto: Proyecto, dias: number, valorPorDia: number}>, total: number } {
+    
+    console.log(`🔄 Ejecutando algoritmo básico (fallback)`);
+    
+    const combinacion: Array<{proyecto: Proyecto, dias: number, valorPorDia: number}> = [];
+    let valorAcumulado = 0;
+    let diasRestantes = diasTotales;
+
+    // Usar solo el proyecto más eficiente en un solo bloque
+    const proyectoOptimo = proyectosOrdenados[0];
+    const diasAUsar = Math.min(diasRestantes, parametros.diasMaximosBloque);
+    
+    if (diasAUsar >= parametros.diasMinimosBloque) {
+      const valorBloque = diasAUsar * proyectoOptimo.valorPorDia;
+      
+      combinacion.push({
+        proyecto: proyectoOptimo.proyecto,
+        dias: diasAUsar,
+        valorPorDia: proyectoOptimo.valorPorDia
+      });
+      
+      valorAcumulado = valorBloque;
+      console.log(`📅 Bloque básico: ${proyectoOptimo.proyecto.nombre} × ${diasAUsar} días = ${valorBloque.toFixed(2)}€`);
+    }
+
+    return { combinacion, total: valorAcumulado };
   }
 
   /**
