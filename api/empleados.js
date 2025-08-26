@@ -32,48 +32,70 @@ export default async function handler(req, res) {
 }
 
 async function getEmpleados(req, res) {
-  const { id } = req.query;
+  try {
+    const { id } = req.query;
 
-  if (id) {
-    // Get specific empleado
-    const result = await sql`
-      SELECT * FROM empleados 
-      WHERE id = ${id} AND estado = 'activo'
-    `;
-    const empleado = result[0];
-    if (!empleado) {
-      return res.status(404).json({ error: 'Empleado not found' });
+    if (id) {
+      // Get specific empleado
+      const result = await sql`
+        SELECT * FROM empleados 
+        WHERE id = ${id} AND estado = 'activo'
+      `;
+      const empleado = result[0];
+      if (!empleado) {
+        return res.status(404).json({ error: 'Empleado not found' });
+      }
+      return res.json(empleado);
+    } else {
+      // Get all empleados
+      const empleados = await sql`
+        SELECT * FROM empleados 
+        WHERE estado = 'activo'
+        ORDER BY apellidos, nombre
+      `;
+      return res.json(empleados);
     }
-    return res.json(empleado);
-  } else {
-    // Get all empleados
-    const empleados = await sql`
-      SELECT * FROM empleados 
-      WHERE estado = 'activo'
-      ORDER BY apellidos, nombre
-    `;
-    return res.json(empleados);
+  } catch (error) {
+    console.error('Error getting empleados:', error);
+    return res.status(500).json({ 
+      error: 'Error getting empleados', 
+      details: error.message 
+    });
   }
 }
 
 async function createEmpleado(req, res) {
-  const { nombre, apellidos, ubicacion, objetivoMensual } = req.body;
+  try {
+    const { nombre, apellidos, ubicacion, objetivoMensual } = req.body;
 
-  if (!nombre || !apellidos || !ubicacion || !objetivoMensual) {
-    return res.status(400).json({ error: 'Missing required fields' });
+    console.log('Creating empleado with data:', { nombre, apellidos, ubicacion, objetivoMensual });
+
+    if (!nombre || !apellidos || !ubicacion || !objetivoMensual) {
+      console.error('Missing required fields:', { nombre, apellidos, ubicacion, objetivoMensual });
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    if (!['Peninsula', 'Mallorca'].includes(ubicacion)) {
+      console.error('Invalid ubicacion:', ubicacion);
+      return res.status(400).json({ error: 'Invalid ubicacion' });
+    }
+
+    const result = await sql`
+      INSERT INTO empleados (nombre, apellidos, ubicacion, objetivo_mensual)
+      VALUES (${nombre}, ${apellidos}, ${ubicacion}, ${objetivoMensual})
+      RETURNING *
+    `;
+
+    console.log('Empleado created successfully:', result[0]);
+    return res.status(201).json(result[0]);
+  } catch (error) {
+    console.error('Error creating empleado:', error);
+    return res.status(500).json({ 
+      error: 'Error creating empleado', 
+      details: error.message,
+      code: error.code 
+    });
   }
-
-  if (!['Peninsula', 'Mallorca'].includes(ubicacion)) {
-    return res.status(400).json({ error: 'Invalid ubicacion' });
-  }
-
-  const result = await sql`
-    INSERT INTO empleados (nombre, apellidos, ubicacion, objetivo_mensual)
-    VALUES (${nombre}, ${apellidos}, ${ubicacion}, ${objetivoMensual})
-    RETURNING *
-  `;
-
-  return res.status(201).json(result[0]);
 }
 
 async function updateEmpleado(req, res) {
