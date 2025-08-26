@@ -1,9 +1,8 @@
-import { VercelRequest, VercelResponse } from '@vercel/node';
 import { neon } from '@neondatabase/serverless';
 
-const sql = neon(process.env.DATABASE_URL!);
+const sql = neon(process.env.DATABASE_URL);
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -32,13 +31,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 }
 
-async function getProyectos(req: VercelRequest, res: VercelResponse) {
+async function getProyectos(req, res) {
   const { id, ubicacion } = req.query;
 
   if (id) {
     // Get specific proyecto
     const result = await sql`
-      SELECT * FROM proyectos WHERE id = ${id as string}
+      SELECT * FROM proyectos WHERE id = ${id}
     `;
     const proyecto = result[0];
     if (!proyecto) {
@@ -49,7 +48,7 @@ async function getProyectos(req: VercelRequest, res: VercelResponse) {
     // Get proyectos by ubicacion
     const proyectos = await sql`
       SELECT * FROM proyectos 
-      WHERE ubicacion = ${ubicacion as string}
+      WHERE ubicacion = ${ubicacion}
       ORDER BY nombre
     `;
     return res.json(proyectos);
@@ -63,7 +62,7 @@ async function getProyectos(req: VercelRequest, res: VercelResponse) {
   }
 }
 
-async function createProyecto(req: VercelRequest, res: VercelResponse) {
+async function createProyecto(req, res) {
   const { nombre, ubicacion, distanciaKm } = req.body;
 
   if (!nombre || !ubicacion || distanciaKm === undefined) {
@@ -85,7 +84,7 @@ async function createProyecto(req: VercelRequest, res: VercelResponse) {
   return res.status(201).json(result[0]);
 }
 
-async function updateProyecto(req: VercelRequest, res: VercelResponse) {
+async function updateProyecto(req, res) {
   const { id } = req.query;
   const { nombre, ubicacion, distanciaKm } = req.body;
 
@@ -101,7 +100,7 @@ async function updateProyecto(req: VercelRequest, res: VercelResponse) {
         ubicacion = ${ubicacion}, 
         distancia_km = ${distanciaKm},
         requiere_dieta = ${requiereDieta}
-    WHERE id = ${id as string}
+    WHERE id = ${id}
     RETURNING *
   `;
 
@@ -112,7 +111,7 @@ async function updateProyecto(req: VercelRequest, res: VercelResponse) {
   return res.json(result[0]);
 }
 
-async function deleteProyecto(req: VercelRequest, res: VercelResponse) {
+async function deleteProyecto(req, res) {
   const { id, all } = req.query;
 
   if (all === 'true') {
@@ -125,6 +124,6 @@ async function deleteProyecto(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Missing proyecto ID' });
   }
 
-  await sql`DELETE FROM proyectos WHERE id = ${id as string}`;
+  await sql`DELETE FROM proyectos WHERE id = ${id}`;
   return res.json({ success: true });
 }

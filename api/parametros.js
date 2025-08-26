@@ -1,9 +1,8 @@
-import { VercelRequest, VercelResponse } from '@vercel/node';
 import { neon } from '@neondatabase/serverless';
 
-const sql = neon(process.env.DATABASE_URL!);
+const sql = neon(process.env.DATABASE_URL);
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -28,7 +27,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 }
 
-async function getParametros(req: VercelRequest, res: VercelResponse) {
+async function getParametros(req, res) {
   const parametros = await sql`
     SELECT clave, valor_numerico, valor_texto, valor_booleano, descripcion 
     FROM parametros_sistema
@@ -36,7 +35,7 @@ async function getParametros(req: VercelRequest, res: VercelResponse) {
   `;
 
   // Convert to the format expected by the frontend
-  const parametrosObj: any = {};
+  const parametrosObj = {};
   
   parametros.forEach(param => {
     let value = param.valor_numerico ?? param.valor_texto ?? param.valor_booleano;
@@ -72,7 +71,7 @@ async function getParametros(req: VercelRequest, res: VercelResponse) {
   return res.json(parametrosObj);
 }
 
-async function updateParametros(req: VercelRequest, res: VercelResponse) {
+async function updateParametros(req, res) {
   const {
     importePorKm,
     importePorDieta,

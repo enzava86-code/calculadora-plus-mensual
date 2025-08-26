@@ -1,9 +1,8 @@
-import { VercelRequest, VercelResponse } from '@vercel/node';
 import { neon } from '@neondatabase/serverless';
 
-const sql = neon(process.env.DATABASE_URL!);
+const sql = neon(process.env.DATABASE_URL);
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -32,14 +31,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 }
 
-async function getEmpleados(req: VercelRequest, res: VercelResponse) {
+async function getEmpleados(req, res) {
   const { id } = req.query;
 
   if (id) {
     // Get specific empleado
     const result = await sql`
       SELECT * FROM empleados 
-      WHERE id = ${id as string} AND estado = 'activo'
+      WHERE id = ${id} AND estado = 'activo'
     `;
     const empleado = result[0];
     if (!empleado) {
@@ -57,7 +56,7 @@ async function getEmpleados(req: VercelRequest, res: VercelResponse) {
   }
 }
 
-async function createEmpleado(req: VercelRequest, res: VercelResponse) {
+async function createEmpleado(req, res) {
   const { nombre, apellidos, ubicacion, objetivoMensual } = req.body;
 
   if (!nombre || !apellidos || !ubicacion || !objetivoMensual) {
@@ -77,7 +76,7 @@ async function createEmpleado(req: VercelRequest, res: VercelResponse) {
   return res.status(201).json(result[0]);
 }
 
-async function updateEmpleado(req: VercelRequest, res: VercelResponse) {
+async function updateEmpleado(req, res) {
   const { id } = req.query;
   const { nombre, apellidos, ubicacion, objetivoMensual } = req.body;
 
@@ -92,7 +91,7 @@ async function updateEmpleado(req: VercelRequest, res: VercelResponse) {
         ubicacion = ${ubicacion}, 
         objetivo_mensual = ${objetivoMensual},
         fecha_modificacion = NOW()
-    WHERE id = ${id as string} AND estado = 'activo'
+    WHERE id = ${id} AND estado = 'activo'
     RETURNING *
   `;
 
@@ -103,7 +102,7 @@ async function updateEmpleado(req: VercelRequest, res: VercelResponse) {
   return res.json(result[0]);
 }
 
-async function deleteEmpleado(req: VercelRequest, res: VercelResponse) {
+async function deleteEmpleado(req, res) {
   const { id, hard } = req.query;
 
   if (!id) {
@@ -112,13 +111,13 @@ async function deleteEmpleado(req: VercelRequest, res: VercelResponse) {
 
   if (hard === 'true') {
     // Hard delete
-    await sql`DELETE FROM empleados WHERE id = ${id as string}`;
+    await sql`DELETE FROM empleados WHERE id = ${id}`;
   } else {
     // Soft delete
     await sql`
       UPDATE empleados 
       SET estado = 'inactivo', fecha_modificacion = NOW()
-      WHERE id = ${id as string}
+      WHERE id = ${id}
     `;
   }
 
