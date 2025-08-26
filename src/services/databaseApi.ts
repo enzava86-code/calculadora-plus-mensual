@@ -181,7 +181,18 @@ class DatabaseApiService {
     if (!response.ok) {
       throw new Error('Failed to fetch parametros');
     }
-    return await response.json();
+    const data = await response.json();
+    
+    // Ensure all numeric parameters are actually numbers
+    return {
+      importePorKm: Number(data.importePorKm) || 0.42,
+      importePorDieta: Number(data.importePorDieta) || 25,
+      distanciaMinimaParaDieta: Number(data.distanciaMinimaParaDieta) || 30,
+      diasMinimosBloque: Number(data.diasMinimosBloque) || 2,
+      diasMaximosBloque: Number(data.diasMaximosBloque) || 5,
+      errorMaximoPermitido: Number(data.errorMaximoPermitido) || 3,
+      priorizarObjetivoSobreConsecutividad: Boolean(data.priorizarObjetivoSobreConsecutividad ?? true),
+    };
   }
 
   async saveParametros(parametros: any): Promise<void> {
@@ -317,7 +328,7 @@ class DatabaseApiService {
       nombre: data.nombre,
       apellidos: data.apellidos,
       ubicacion: data.ubicacion,
-      objetivoMensual: parseFloat(data.objetivo_mensual),
+      objetivoMensual: Number(data.objetivo_mensual) || 0,
       estado: data.estado,
       fechaCreacion: new Date(data.fecha_creacion),
       fechaModificacion: new Date(data.fecha_modificacion),
@@ -329,8 +340,8 @@ class DatabaseApiService {
       id: data.id,
       nombre: data.nombre,
       ubicacion: data.ubicacion,
-      distanciaKm: parseInt(data.distancia_km),
-      requiereDieta: data.requiere_dieta,
+      distanciaKm: Number(data.distancia_km) || 0,
+      requiereDieta: Boolean(data.requiere_dieta),
     };
   }
 
