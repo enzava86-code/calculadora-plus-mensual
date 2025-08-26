@@ -9,7 +9,7 @@ import {
 import { Empleado } from '@/types/empleado';
 import { Proyecto } from '@/types/proyecto';
 import { OpcionesGeneracion, ParametrosCalculo } from '@/types/plan';
-import { dbService } from '../services/databaseConfig';
+import { dbService } from '../../services/databaseConfig';
 
 interface CalculadoraFormProps {
   onGenerate: (opciones: OpcionesGeneracion) => Promise<void>;
@@ -52,7 +52,7 @@ export default function CalculadoraForm({ onGenerate, loading }: CalculadoraForm
         dbService.getParametros()
       ]);
 
-      const empleadosActivos = empleadosData.filter(emp => emp.estado === 'activo');
+      const empleadosActivos = empleadosData.filter((emp: Empleado) => emp.estado === 'activo');
       setEmpleados(empleadosActivos);
       setParametros(parametrosData);
 
