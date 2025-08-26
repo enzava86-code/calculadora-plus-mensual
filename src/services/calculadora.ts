@@ -931,14 +931,17 @@ export class CalculadoraPlusService {
         console.log(`📅 Bloque ${combinacion.length}: ${proyectoActual.proyecto.nombre} × ${diasEnEsteBloque} días = ${valorBloque.toFixed(2)}€`);
       }
 
-      // 6. Lógica de alternancia
-      if (diasConsecutivosActual >= MAX_DIAS_CONSECUTIVOS) {
-        // Forzar cambio de proyecto
+      // 6. Lógica de alternancia - FIXED: evaluar antes del próximo bloque
+      const necesitaCambio = diasConsecutivosActual >= MAX_DIAS_CONSECUTIVOS;
+      const completoAlternancia = requiereAlternancia && diasConsecutivosActual >= MIN_DIAS_ALTERNANCIA;
+
+      if (necesitaCambio && !requiereAlternancia) {
+        // Forzar cambio de proyecto después de 5 días consecutivos
         proyectoActual = proyectoActual === proyectoPrimario ? proyectoSecundario : proyectoPrimario;
         diasConsecutivosActual = 0;
         requiereAlternancia = true;
         console.log(`🔄 ALTERNANCIA FORZADA → Cambiando a ${proyectoActual.proyecto.nombre}`);
-      } else if (requiereAlternancia && diasConsecutivosActual >= MIN_DIAS_ALTERNANCIA) {
+      } else if (completoAlternancia) {
         // Ya completamos el mínimo de alternancia, podemos volver al primario si es mejor
         requiereAlternancia = false;
         proyectoActual = proyectoPrimario; // Volver al proyecto más eficiente
@@ -1059,24 +1062,35 @@ export class CalculadoraPlusService {
     let proyectoAnterior: Proyecto | null = null;
     let diasConsecutivos = 0;
     let violaciones = 0;
+    let bloqueConsecutivo = 0;
 
     for (let i = 0; i < combinacion.length; i++) {
       const bloque = combinacion[i];
       
       if (proyectoAnterior && proyectoAnterior.id === bloque.proyecto.id) {
-        // Mismo proyecto que el anterior
+        // Mismo proyecto que el anterior - sumar días
         diasConsecutivos += bloque.dias;
+        bloqueConsecutivo++;
         
         if (diasConsecutivos > maxDiasConsecutivos) {
-          console.log(`❌ VIOLACIÓN: ${bloque.proyecto.nombre} usado ${diasConsecutivos} días consecutivos (máximo ${maxDiasConsecutivos})`);
+          console.log(`❌ VIOLACIÓN: ${bloque.proyecto.nombre} usado ${diasConsecutivos} días consecutivos en ${bloqueConsecutivo + 1} bloques (máximo ${maxDiasConsecutivos})`);
           violaciones++;
+        } else {
+          console.log(`⚠️ Continuación: ${bloque.proyecto.nombre} ${diasConsecutivos} días consecutivos en ${bloqueConsecutivo + 1} bloques`);
         }
       } else {
-        // Proyecto diferente, reiniciar contador
+        // Proyecto diferente, reiniciar contadores
         if (proyectoAnterior) {
-          console.log(`✅ Alternancia correcta: ${proyectoAnterior.nombre} → ${bloque.proyecto.nombre}`);
+          console.log(`✅ Alternancia correcta: ${proyectoAnterior.nombre} (${diasConsecutivos} días) → ${bloque.proyecto.nombre}`);
         }
         diasConsecutivos = bloque.dias;
+        bloqueConsecutivo = 0;
+        
+        // Verificar que el bloque individual no exceda el límite
+        if (bloque.dias > maxDiasConsecutivos) {
+          console.log(`❌ VIOLACIÓN: Bloque individual ${bloque.proyecto.nombre} tiene ${bloque.dias} días (máximo ${maxDiasConsecutivos})`);
+          violaciones++;
+        }
       }
       
       proyectoAnterior = bloque.proyecto;
