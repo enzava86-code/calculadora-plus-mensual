@@ -194,13 +194,35 @@ export default function EmpleadosPage() {
             empleadosDuplicados++;
             console.log(`Empleado duplicado encontrado: ${empleadoData.nombre || ''} ${empleadoData.apellidos || ''}`);
           } else {
-            await dbService.createEmpleado({
-              nombre: empleadoData.nombre,
-              apellidos: empleadoData.apellidos,
-              ubicacion: empleadoData.ubicacion as 'Peninsula' | 'Mallorca',
-              objetivoMensual: empleadoData.objetivoMensual,
-            });
-            empleadosCreados++;
+            try {
+              console.log('Creating empleado with data:', {
+                nombre: empleadoData.nombre,
+                apellidos: empleadoData.apellidos,
+                ubicacion: empleadoData.ubicacion,
+                objetivoMensual: empleadoData.objetivoMensual,
+                objetivoMensualType: typeof empleadoData.objetivoMensual,
+                objetivoMensualValue: empleadoData.objetivoMensual
+              });
+              
+              await dbService.createEmpleado({
+                nombre: empleadoData.nombre,
+                apellidos: empleadoData.apellidos,
+                ubicacion: empleadoData.ubicacion as 'Peninsula' | 'Mallorca',
+                objetivoMensual: empleadoData.objetivoMensual,
+              });
+              empleadosCreados++;
+              console.log('Empleado created successfully');
+            } catch (error) {
+              console.error('Error creating individual empleado:', error);
+              console.error('Failed empleado data:', {
+                nombre: empleadoData.nombre,
+                apellidos: empleadoData.apellidos,
+                ubicacion: empleadoData.ubicacion,
+                objetivoMensual: empleadoData.objetivoMensual
+              });
+              // Re-throw to be caught by outer try-catch
+              throw error;
+            }
           }
         }
       }

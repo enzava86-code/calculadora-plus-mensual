@@ -41,7 +41,20 @@ class DatabaseApiService {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to create empleado');
+      const errorText = await response.text();
+      console.error('API Error Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText,
+        sentData: { nombre: dto.nombre, apellidos: dto.apellidos, ubicacion: dto.ubicacion, objetivoMensual: dto.objetivoMensual }
+      });
+      
+      try {
+        const errorJson = JSON.parse(errorText);
+        throw new Error(`Failed to create empleado: ${errorJson.error || 'Unknown error'} - ${errorJson.details || ''}`);
+      } catch (parseError) {
+        throw new Error(`Failed to create empleado: ${response.status} ${response.statusText} - ${errorText}`);
+      }
     }
     const data = await response.json();
     return this.parseEmpleado(data);
