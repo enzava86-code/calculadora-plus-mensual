@@ -852,8 +852,13 @@ export class CalculadoraPlusService {
     parametros: ParametrosCalculo
   ): { combinacion: Array<{proyecto: Proyecto, dias: number, valorPorDia: number}>, total: number } {
     
-    console.log(`🔄 Ejecutando algoritmo de reutilización CON ALTERNANCIA para objetivo ${objetivo}€`);
+    console.log(`\n${'='.repeat(80)}`);
+    console.log(`🔄 INICIANDO ALGORITMO DE ALTERNANCIA`);
+    console.log(`🎯 Objetivo: ${objetivo}€`);
+    console.log(`📅 Días totales: ${diasTotales}`);
     console.log(`📋 REGLAS: Máximo 5 días consecutivos por proyecto → Mínimo 2 días en proyecto diferente`);
+    console.log(`⚙️ Parámetros: min=${parametros.diasMinimosBloque}, max=${parametros.diasMaximosBloque}`);
+    console.log(`${'='.repeat(80)}\n`);
     
     // 1. Validar que tenemos suficientes proyectos para alternar
     if (proyectosOrdenados.length < 2) {
@@ -882,58 +887,86 @@ export class CalculadoraPlusService {
     let requiereAlternancia = false;
 
     // 5. Algoritmo de alternancia inteligente
+    let iteracion = 0;
     while (diasUsados < diasTotales) {
+      iteracion++;
       const diasRestantes = diasTotales - diasUsados;
       let diasEnEsteBloque: number;
+
+      console.log(`\n--- ITERACIÓN ${iteracion} ---`);
+      console.log(`📊 Estado actual: ${diasUsados}/${diasTotales} días, €${valorAcumulado.toFixed(2)}/€${objetivo}`);
+      console.log(`🏗️ Proyecto actual: ${proyectoActual.proyecto.nombre} (${proyectoActual.valorPorDia.toFixed(2)}€/día)`);
+      console.log(`⏳ Días restantes: ${diasRestantes}, Consecutivos actuales: ${diasConsecutivosActual}`);
+      console.log(`🔄 Requiere alternancia: ${requiereAlternancia ? 'SÍ' : 'NO'}`);
 
       // Determinar cuántos días asignar en este bloque
       if (requiereAlternancia) {
         // Estamos en alternancia forzosa, usar mínimo 2 días
         diasEnEsteBloque = Math.max(MIN_DIAS_ALTERNANCIA, 
           Math.min(parametros.diasMinimosBloque, diasRestantes));
+        console.log(`🔄 ALTERNANCIA: Asignando ${diasEnEsteBloque} días (mín=${MIN_DIAS_ALTERNANCIA})`);
       } else {
         // Podemos usar hasta el máximo permitido
         diasEnEsteBloque = Math.min(MAX_DIAS_CONSECUTIVOS, diasRestantes);
+        console.log(`🎯 PRIMARIO: Intentando asignar ${diasEnEsteBloque} días (máx=${MAX_DIAS_CONSECUTIVOS})`);
         
         // FIXED: Solo considerar objetivoRestante si es significativo y positivo
         // No limitar prematuramente para objetivos altos
         const objetivoRestante = objetivo - valorAcumulado;
-        
-        // Solo ajustar por objetivo restante si estamos cerca del objetivo
-        // y el objetivo restante es mayor que el costo de un bloque mínimo
         const costoMinimoBloque = parametros.diasMinimosBloque * proyectoActual.valorPorDia;
+        
+        console.log(`💰 Objetivo restante: €${objetivoRestante.toFixed(2)}, Costo mín bloque: €${costoMinimoBloque.toFixed(2)}`);
+        console.log(`📊 Porcentaje restante: ${(objetivoRestante/objetivo*100).toFixed(1)}%`);
         
         if (objetivoRestante > costoMinimoBloque && objetivoRestante < objetivo * 0.3) {
           const diasOptimos = Math.round(objetivoRestante / proyectoActual.valorPorDia);
+          console.log(`🎯 Días óptimos calculados: ${diasOptimos} (por objetivo restante)`);
           
           if (diasOptimos > 0 && diasOptimos < diasEnEsteBloque) {
+            const diasAntes = diasEnEsteBloque;
             diasEnEsteBloque = Math.max(parametros.diasMinimosBloque, 
               Math.min(diasOptimos, diasEnEsteBloque));
+            console.log(`⚡ OPTIMIZACIÓN: ${diasAntes} → ${diasEnEsteBloque} días por precisión`);
           }
         }
       }
 
       // FIXED: Validar que el bloque sea válido y usar todos los días disponibles
       if (diasEnEsteBloque < parametros.diasMinimosBloque && diasRestantes >= parametros.diasMinimosBloque) {
+        const diasAntes = diasEnEsteBloque;
         diasEnEsteBloque = parametros.diasMinimosBloque;
+        console.log(`⬆️ AJUSTE MÍNIMO: ${diasAntes} → ${diasEnEsteBloque} días`);
       }
       
       if (diasEnEsteBloque > diasRestantes) {
+        const diasAntes = diasEnEsteBloque;
         diasEnEsteBloque = diasRestantes;
+        console.log(`⬇️ AJUSTE LÍMITE: ${diasAntes} → ${diasEnEsteBloque} días (días restantes)`);
       }
 
       // CRITICAL FIX: Si quedamos con días restantes pequeños pero válidos, usarlos
       if (diasEnEsteBloque === 0 && diasRestantes > 0) {
+        console.log(`🚨 SITUACIÓN CRÍTICA: diasEnEsteBloque=0 pero diasRestantes=${diasRestantes}`);
+        
         if (diasRestantes >= parametros.diasMinimosBloque) {
           diasEnEsteBloque = diasRestantes;
+          console.log(`🔧 FORZANDO: Usando todos los días restantes (${diasEnEsteBloque})`);
         } else if (diasRestantes === diasTotales) {
           // Si son todos los días disponibles, usar días mínimos al menos
           diasEnEsteBloque = Math.min(parametros.diasMinimosBloque, diasRestantes);
+          console.log(`🔧 FORZANDO: Inicio con días mínimos (${diasEnEsteBloque})`);
         } else {
           // Usar los días restantes aunque sean menos del mínimo
           diasEnEsteBloque = diasRestantes;
+          console.log(`🔧 FORZANDO: Días restantes finales (${diasEnEsteBloque})`);
         }
-        console.log(`🔧 FORZANDO uso de días restantes: ${diasEnEsteBloque} días`);
+      }
+
+      console.log(`✅ DÍAS FINALES ASIGNADOS: ${diasEnEsteBloque}`);
+      
+      if (diasEnEsteBloque <= 0) {
+        console.log(`🛑 ERROR CRÍTICO: diasEnEsteBloque=${diasEnEsteBloque} ≤ 0`);
+        console.log(`📊 Estado: usados=${diasUsados}, restantes=${diasRestantes}, total=${diasTotales}`);
       }
 
       // Agregar bloque a la combinación
@@ -950,38 +983,56 @@ export class CalculadoraPlusService {
         diasUsados += diasEnEsteBloque;
         diasConsecutivosActual += diasEnEsteBloque;
         
-        console.log(`📅 Bloque ${combinacion.length}: ${proyectoActual.proyecto.nombre} × ${diasEnEsteBloque} días = ${valorBloque.toFixed(2)}€`);
+        console.log(`✅ BLOQUE AGREGADO ${combinacion.length}: ${proyectoActual.proyecto.nombre}`);
+        console.log(`   📅 ${diasEnEsteBloque} días × €${proyectoActual.valorPorDia.toFixed(2)} = €${valorBloque.toFixed(2)}`);
+        console.log(`   📊 Progreso: €${valorAcumulado.toFixed(2)}/€${objetivo} (${(valorAcumulado/objetivo*100).toFixed(1)}%)`);
+        console.log(`   🗓️ Días: ${diasUsados}/${diasTotales} (${diasConsecutivosActual} consecutivos)`);
+      } else {
+        console.log(`❌ BLOQUE NO AGREGADO: diasEnEsteBloque=${diasEnEsteBloque} ≤ 0`);
       }
 
       // 6. Lógica de alternancia - FIXED: evaluar antes del próximo bloque
       const necesitaCambio = diasConsecutivosActual >= MAX_DIAS_CONSECUTIVOS;
       const completoAlternancia = requiereAlternancia && diasConsecutivosActual >= MIN_DIAS_ALTERNANCIA;
 
+      console.log(`🔍 EVALUANDO ALTERNANCIA:`);
+      console.log(`   📊 Consecutivos: ${diasConsecutivosActual}/${MAX_DIAS_CONSECUTIVOS}`);
+      console.log(`   🔄 Necesita cambio: ${necesitaCambio ? 'SÍ' : 'NO'}`);
+      console.log(`   ✅ Completo alternancia: ${completoAlternancia ? 'SÍ' : 'NO'}`);
+
       if (necesitaCambio && !requiereAlternancia) {
         // Forzar cambio de proyecto después de 5 días consecutivos
+        const proyectoAnterior = proyectoActual.proyecto.nombre;
         proyectoActual = proyectoActual === proyectoPrimario ? proyectoSecundario : proyectoPrimario;
         diasConsecutivosActual = 0;
         requiereAlternancia = true;
-        console.log(`🔄 ALTERNANCIA FORZADA → Cambiando a ${proyectoActual.proyecto.nombre}`);
+        console.log(`🔄 ALTERNANCIA FORZADA: ${proyectoAnterior} → ${proyectoActual.proyecto.nombre}`);
+        console.log(`   ⚡ Estado: requiereAlternancia=true, consecutivos=0`);
       } else if (completoAlternancia) {
         // Ya completamos el mínimo de alternancia, podemos volver al primario si es mejor
+        const proyectoAnterior = proyectoActual.proyecto.nombre;
         requiereAlternancia = false;
         proyectoActual = proyectoPrimario; // Volver al proyecto más eficiente
         diasConsecutivosActual = 0;
-        console.log(`↩️ ALTERNANCIA COMPLETADA → Volviendo a ${proyectoActual.proyecto.nombre}`);
+        console.log(`↩️ ALTERNANCIA COMPLETADA: ${proyectoAnterior} → ${proyectoActual.proyecto.nombre}`);
+        console.log(`   ⚡ Estado: requiereAlternancia=false, consecutivos=0`);
+      } else {
+        console.log(`➡️ SIN CAMBIOS: Continuamos con ${proyectoActual.proyecto.nombre}`);
       }
 
       // FIXED: Solo terminar si realmente no se pueden asignar más días
       if (diasEnEsteBloque === 0 && diasRestantes === 0) {
-        console.log(`✅ Todos los días han sido asignados, algoritmo completo`);
+        console.log(`\n✅ ALGORITMO COMPLETADO: Todos los días han sido asignados`);
+        console.log(`📊 Final: ${diasUsados}/${diasTotales} días, €${valorAcumulado.toFixed(2)}`);
         break;
       } else if (diasEnEsteBloque === 0 && diasRestantes > 0) {
-        console.log(`🚨 ERROR: Días restantes (${diasRestantes}) no pudieron ser asignados`);
-        console.log(`🔧 Intentando asignación forzosa...`);
+        console.log(`\n🚨 SITUACIÓN CRÍTICA: diasEnEsteBloque=0 pero quedan ${diasRestantes} días`);
+        console.log(`🔧 Intentando ASIGNACIÓN DE EMERGENCIA...`);
+        console.log(`📊 Estado: proyecto=${proyectoActual.proyecto.nombre}, consecutivos=${diasConsecutivosActual}`);
         
         // Último intento: usar cualquier proyecto disponible
         diasEnEsteBloque = diasRestantes;
-        console.log(`💪 ASIGNACIÓN FORZOSA: ${diasEnEsteBloque} días a ${proyectoActual.proyecto.nombre}`);
+        console.log(`💪 EMERGENCIA: Asignando ${diasEnEsteBloque} días forzosamente`);
         
         if (diasEnEsteBloque > 0) {
           const valorBloque = diasEnEsteBloque * proyectoActual.valorPorDia;
@@ -995,8 +1046,17 @@ export class CalculadoraPlusService {
           valorAcumulado += valorBloque;
           diasUsados += diasEnEsteBloque;
           
-          console.log(`🆘 BLOQUE FORZOSO: ${proyectoActual.proyecto.nombre} × ${diasEnEsteBloque} días = ${valorBloque.toFixed(2)}€`);
+          console.log(`🆘 BLOQUE DE EMERGENCIA: ${proyectoActual.proyecto.nombre}`);
+          console.log(`   📅 ${diasEnEsteBloque} días × €${proyectoActual.valorPorDia.toFixed(2)} = €${valorBloque.toFixed(2)}`);
+          console.log(`   📊 NUEVO TOTAL: €${valorAcumulado.toFixed(2)} (${diasUsados}/${diasTotales} días)`);
         }
+        break;
+      }
+
+      // Control de seguridad contra bucles infinitos
+      if (iteracion > diasTotales + 10) {
+        console.log(`🚨 BUCLE INFINITO DETECTADO: Deteniendo algoritmo en iteración ${iteracion}`);
+        console.log(`📊 Estado final forzoso: ${diasUsados}/${diasTotales} días, €${valorAcumulado.toFixed(2)}`);
         break;
       }
     }
@@ -1006,14 +1066,27 @@ export class CalculadoraPlusService {
     const porcentajeError = (diferencia / objetivo) * 100;
     
     // 7. Mostrar resumen con patrón de alternancia
-    console.log(`\n🎯 RESULTADO CON ALTERNANCIA:`);
-    console.log(`💰 Total: ${totalFinal.toFixed(2)}€ vs objetivo ${objetivo}€`);
-    console.log(`📊 Error: ${diferencia.toFixed(2)}€ (${porcentajeError.toFixed(2)}%)`);
-    console.log(`📅 Días usados: ${diasUsados}/${diasTotales}`);
+    console.log(`\n${'='.repeat(80)}`);
+    console.log(`🎯 RESULTADO FINAL CON ALTERNANCIA`);
+    console.log(`${'='.repeat(80)}`);
+    console.log(`💰 Total generado: €${totalFinal.toFixed(2)}`);
+    console.log(`🎯 Objetivo deseado: €${objetivo}`);
+    console.log(`📊 Diferencia: €${diferencia.toFixed(2)} (${porcentajeError.toFixed(2)}%)`);
+    console.log(`📅 Días utilizados: ${diasUsados}/${diasTotales} (${((diasUsados/diasTotales)*100).toFixed(1)}%)`);
     console.log(`🔢 Bloques generados: ${combinacion.length}`);
     
+    // Mostrar distribución de bloques
+    console.log(`\n📋 DISTRIBUCIÓN DE BLOQUES:`);
+    combinacion.forEach((bloque, i) => {
+      const valor = bloque.dias * bloque.valorPorDia;
+      console.log(`   ${i+1}. ${bloque.proyecto.nombre}: ${bloque.dias} días × €${bloque.valorPorDia.toFixed(2)} = €${valor.toFixed(2)}`);
+    });
+    
     // Verificar patrón de alternancia
+    console.log(`\n🔍 VALIDACIÓN DE ALTERNANCIA:`);
     this.validarPatronAlternancia(combinacion, MAX_DIAS_CONSECUTIVOS);
+    
+    console.log(`${'='.repeat(80)}\n`);
     
     return { combinacion, total: totalFinal };
   }
