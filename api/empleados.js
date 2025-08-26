@@ -83,10 +83,14 @@ async function createEmpleado(req, res) {
     const result = await sql`
       INSERT INTO empleados (nombre, apellidos, ubicacion, objetivo_mensual)
       VALUES (${nombre}, ${apellidos}, ${ubicacion}, ${objetivoMensual})
+      ON CONFLICT (nombre, apellidos, ubicacion) 
+      DO UPDATE SET 
+        objetivo_mensual = EXCLUDED.objetivo_mensual,
+        fecha_modificacion = NOW()
       RETURNING *
     `;
 
-    console.log('Empleado created successfully:', result[0]);
+    console.log('Empleado created/updated successfully:', result[0]);
     return res.status(201).json(result[0]);
   } catch (error) {
     console.error('Error creating empleado:', error);

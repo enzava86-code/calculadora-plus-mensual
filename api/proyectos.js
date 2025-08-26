@@ -78,6 +78,10 @@ async function createProyecto(req, res) {
   const result = await sql`
     INSERT INTO proyectos (nombre, ubicacion, distancia_km, requiere_dieta)
     VALUES (${nombre}, ${ubicacion}, ${distanciaKm}, ${requiereDieta})
+    ON CONFLICT (nombre, ubicacion) 
+    DO UPDATE SET 
+      distancia_km = EXCLUDED.distancia_km,
+      requiere_dieta = EXCLUDED.requiere_dieta
     RETURNING *
   `;
 
