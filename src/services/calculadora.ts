@@ -895,23 +895,45 @@ export class CalculadoraPlusService {
         // Podemos usar hasta el máximo permitido
         diasEnEsteBloque = Math.min(MAX_DIAS_CONSECUTIVOS, diasRestantes);
         
-        // Pero también considerar el objetivo restante
+        // FIXED: Solo considerar objetivoRestante si es significativo y positivo
+        // No limitar prematuramente para objetivos altos
         const objetivoRestante = objetivo - valorAcumulado;
-        const diasOptimos = Math.round(objetivoRestante / proyectoActual.valorPorDia);
         
-        if (diasOptimos > 0 && diasOptimos < diasEnEsteBloque) {
-          diasEnEsteBloque = Math.max(parametros.diasMinimosBloque, 
-            Math.min(diasOptimos, diasEnEsteBloque));
+        // Solo ajustar por objetivo restante si estamos cerca del objetivo
+        // y el objetivo restante es mayor que el costo de un bloque mínimo
+        const costoMinimoBloque = parametros.diasMinimosBloque * proyectoActual.valorPorDia;
+        
+        if (objetivoRestante > costoMinimoBloque && objetivoRestante < objetivo * 0.3) {
+          const diasOptimos = Math.round(objetivoRestante / proyectoActual.valorPorDia);
+          
+          if (diasOptimos > 0 && diasOptimos < diasEnEsteBloque) {
+            diasEnEsteBloque = Math.max(parametros.diasMinimosBloque, 
+              Math.min(diasOptimos, diasEnEsteBloque));
+          }
         }
       }
 
-      // Validar que el bloque sea válido
+      // FIXED: Validar que el bloque sea válido y usar todos los días disponibles
       if (diasEnEsteBloque < parametros.diasMinimosBloque && diasRestantes >= parametros.diasMinimosBloque) {
         diasEnEsteBloque = parametros.diasMinimosBloque;
       }
       
       if (diasEnEsteBloque > diasRestantes) {
         diasEnEsteBloque = diasRestantes;
+      }
+
+      // CRITICAL FIX: Si quedamos con días restantes pequeños pero válidos, usarlos
+      if (diasEnEsteBloque === 0 && diasRestantes > 0) {
+        if (diasRestantes >= parametros.diasMinimosBloque) {
+          diasEnEsteBloque = diasRestantes;
+        } else if (diasRestantes === diasTotales) {
+          // Si son todos los días disponibles, usar días mínimos al menos
+          diasEnEsteBloque = Math.min(parametros.diasMinimosBloque, diasRestantes);
+        } else {
+          // Usar los días restantes aunque sean menos del mínimo
+          diasEnEsteBloque = diasRestantes;
+        }
+        console.log(`🔧 FORZANDO uso de días restantes: ${diasEnEsteBloque} días`);
       }
 
       // Agregar bloque a la combinación
@@ -949,9 +971,32 @@ export class CalculadoraPlusService {
         console.log(`↩️ ALTERNANCIA COMPLETADA → Volviendo a ${proyectoActual.proyecto.nombre}`);
       }
 
-      // Prevenir bucles infinitos
-      if (diasEnEsteBloque === 0) {
-        console.log(`⚠️ No se pueden asignar más días, terminando algoritmo`);
+      // FIXED: Solo terminar si realmente no se pueden asignar más días
+      if (diasEnEsteBloque === 0 && diasRestantes === 0) {
+        console.log(`✅ Todos los días han sido asignados, algoritmo completo`);
+        break;
+      } else if (diasEnEsteBloque === 0 && diasRestantes > 0) {
+        console.log(`🚨 ERROR: Días restantes (${diasRestantes}) no pudieron ser asignados`);
+        console.log(`🔧 Intentando asignación forzosa...`);
+        
+        // Último intento: usar cualquier proyecto disponible
+        diasEnEsteBloque = diasRestantes;
+        console.log(`💪 ASIGNACIÓN FORZOSA: ${diasEnEsteBloque} días a ${proyectoActual.proyecto.nombre}`);
+        
+        if (diasEnEsteBloque > 0) {
+          const valorBloque = diasEnEsteBloque * proyectoActual.valorPorDia;
+          
+          combinacion.push({
+            proyecto: proyectoActual.proyecto,
+            dias: diasEnEsteBloque,
+            valorPorDia: proyectoActual.valorPorDia
+          });
+          
+          valorAcumulado += valorBloque;
+          diasUsados += diasEnEsteBloque;
+          
+          console.log(`🆘 BLOQUE FORZOSO: ${proyectoActual.proyecto.nombre} × ${diasEnEsteBloque} días = ${valorBloque.toFixed(2)}€`);
+        }
         break;
       }
     }
