@@ -202,7 +202,7 @@ export default function CalculadoraForm({ onGenerate, loading }: CalculadoraForm
               <input
                 type="number"
                 min="50"
-                max="1000"
+                max="1500"
                 step="5"
                 placeholder={`Por defecto: €${selectedEmpleado.objetivoMensual}`}
                 value={formData.objetivoPersonalizado || ''}

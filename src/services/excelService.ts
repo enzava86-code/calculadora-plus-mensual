@@ -542,8 +542,8 @@ export class ExcelService {
                 continue;
               }
 
-              if (!empleado.objetivoMensual || empleado.objetivoMensual < 50 || empleado.objetivoMensual > 1000) {
-                errores.push(`Fila ${i + 1}: Objetivo mensual debe estar entre 50€ y 1000€`);
+              if (!empleado.objetivoMensual || empleado.objetivoMensual < 50 || empleado.objetivoMensual > 1500) {
+                errores.push(`Fila ${i + 1}: Objetivo mensual debe estar entre 50€ y 1500€`);
                 continue;
               }
 
