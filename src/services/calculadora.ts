@@ -924,28 +924,85 @@ export class CalculadoraPlusService {
       console.log(`⏳ Días restantes: ${diasRestantes}, Consecutivos actuales: ${diasConsecutivosActual}`);
       console.log(`🔄 Requiere alternancia: ${requiereAlternancia ? 'SÍ' : 'NO'}`);
 
-      // NUEVA LÓGICA: Optimización para días finales
-      // Si quedan pocos días y el proyecto primario es más eficiente, usarlo en lugar del alternativo
+      // NUEVA LÓGICA: Optimización inteligente para días finales
+      // Busca la mejor combinación de proyectos para maximizar precisión
       let proyectoOriginal = proyectoActual;
       let optimizacionFinal = false;
       
       if (requiereAlternancia && diasRestantes <= 3 && diasRestantes > 0) {
         const objetivoRestante = objetivo - valorAcumulado;
-        const valorConProyectoActual = diasRestantes * proyectoActual.valorPorDia;
-        const valorConProyectoPrimario = diasRestantes * proyectoPrimario.valorPorDia;
-        const diferenciaActual = Math.abs((valorAcumulado + valorConProyectoActual) - objetivo);
-        const diferenciaPrimario = Math.abs((valorAcumulado + valorConProyectoPrimario) - objetivo);
-        
-        console.log(`\n🧠 ANÁLISIS DÍAS FINALES (${diasRestantes} días restantes):`);
+        console.log(`\n🧠 ANÁLISIS INTELIGENTE DÍAS FINALES (${diasRestantes} días restantes):`);
         console.log(`   📊 Objetivo restante: €${objetivoRestante.toFixed(2)}`);
-        console.log(`   🔄 Con ${proyectoActual.proyecto.nombre}: €${valorConProyectoActual.toFixed(2)} → diff €${diferenciaActual.toFixed(2)}`);
-        console.log(`   🥇 Con ${proyectoPrimario.proyecto.nombre}: €${valorConProyectoPrimario.toFixed(2)} → diff €${diferenciaPrimario.toFixed(2)}`);
         
-        if (diferenciaPrimario < diferenciaActual && proyectoPrimario !== proyectoActual) {
-          console.log(`   ⚡ OPTIMIZACIÓN FINAL: Cambio a proyecto primario (mejor precisión)`);
-          proyectoActual = proyectoPrimario;
+        // Evaluar todas las combinaciones posibles con proyectos disponibles
+        const proyectosDisponibles = proyectosOrdenados;
+        
+        let mejorOpcion = {
+          proyectos: [proyectoActual],
+          diferencia: Math.abs((diasRestantes * proyectoActual.valorPorDia) - objetivoRestante),
+          valorTotal: diasRestantes * proyectoActual.valorPorDia
+        };
+        
+        console.log(`   🔄 Opción actual (${proyectoActual.proyecto.nombre}): €${mejorOpcion.valorTotal.toFixed(2)} → diff €${mejorOpcion.diferencia.toFixed(2)}`);
+        
+        // Si solo queda 1 día, buscar el proyecto que más se acerque al objetivo restante
+        if (diasRestantes === 1) {
+          for (const proyecto of proyectosDisponibles) {
+            const diferencia = Math.abs(proyecto.valorPorDia - objetivoRestante);
+            if (diferencia < mejorOpcion.diferencia) {
+              mejorOpcion = {
+                proyectos: [proyecto],
+                diferencia,
+                valorTotal: proyecto.valorPorDia
+              };
+              console.log(`   🎯 Nueva mejor opción: ${proyecto.proyecto.nombre} (€${proyecto.valorPorDia.toFixed(2)}) → diff €${diferencia.toFixed(2)}`);
+            }
+          }
+        } 
+        // Si quedan 2-3 días, intentar combinaciones
+        else if (diasRestantes >= 2) {
+          // Buscar la mejor combinación de proyectos
+          for (let i = 0; i < proyectosDisponibles.length; i++) {
+            for (let j = 0; j < proyectosDisponibles.length; j++) {
+              if (diasRestantes === 2) {
+                const valorTotal = proyectosDisponibles[i].valorPorDia + proyectosDisponibles[j].valorPorDia;
+                const diferencia = Math.abs(valorTotal - objetivoRestante);
+                if (diferencia < mejorOpcion.diferencia) {
+                  mejorOpcion = {
+                    proyectos: [proyectosDisponibles[i], proyectosDisponibles[j]],
+                    diferencia,
+                    valorTotal
+                  };
+                  console.log(`   🎯 Mejor combinación 2 días: ${proyectosDisponibles[i].proyecto.nombre} + ${proyectosDisponibles[j].proyecto.nombre} = €${valorTotal.toFixed(2)} → diff €${diferencia.toFixed(2)}`);
+                }
+              } else if (diasRestantes === 3) {
+                for (let k = 0; k < proyectosDisponibles.length; k++) {
+                  const valorTotal = proyectosDisponibles[i].valorPorDia + proyectosDisponibles[j].valorPorDia + proyectosDisponibles[k].valorPorDia;
+                  const diferencia = Math.abs(valorTotal - objetivoRestante);
+                  if (diferencia < mejorOpcion.diferencia) {
+                    mejorOpcion = {
+                      proyectos: [proyectosDisponibles[i], proyectosDisponibles[j], proyectosDisponibles[k]],
+                      diferencia,
+                      valorTotal
+                    };
+                    console.log(`   🎯 Mejor combinación 3 días: ${proyectosDisponibles[i].proyecto.nombre} + ${proyectosDisponibles[j].proyecto.nombre} + ${proyectosDisponibles[k].proyecto.nombre} = €${valorTotal.toFixed(2)} → diff €${diferencia.toFixed(2)}`);
+                  }
+                }
+              }
+            }
+          }
+        }
+        
+        // Si encontramos una mejor opción, usar el primer proyecto de la combinación
+        if (mejorOpcion.diferencia < Math.abs((diasRestantes * proyectoActual.valorPorDia) - objetivoRestante)) {
+          const proyectoOptimo = mejorOpcion.proyectos[0];
+          console.log(`   ⚡ OPTIMIZACIÓN FINAL: Cambio a ${proyectoOptimo.proyecto.nombre} (mejor precisión: €${mejorOpcion.diferencia.toFixed(2)})`);
+          proyectoActual = proyectoOptimo;
           optimizacionFinal = true;
           requiereAlternancia = false; // Desactivar alternancia para estos días finales
+          
+          // TODO: En una versión futura, implementar combinaciones multi-proyecto por día
+          console.log(`   💡 NOTA: Usando solo el primer proyecto de la combinación óptima`);
         } else {
           console.log(`   ➡️ Sin cambios: proyecto actual es óptimo para días finales`);
         }
