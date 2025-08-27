@@ -12,6 +12,7 @@ import {
 import { PlanMensual } from '@/types/plan';
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
+import LoggingButtons from '../UI/LoggingButtons';
 
 interface PlanDetailModalProps {
   plan: PlanMensual | null;
@@ -75,7 +76,7 @@ export default function PlanDetailModal({ plan, isOpen, onClose }: PlanDetailMod
         <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-6xl sm:w-full">
           <div className="bg-white px-4 pt-5 pb-4 sm:p-6">
             <div className="flex items-start justify-between mb-6">
-              <div>
+              <div className="flex-1">
                 <h3 className="text-lg leading-6 font-medium text-gray-900 flex items-center">
                   <CalendarDaysIcon className="h-6 w-6 mr-2 text-purple-600" />
                   Detalle del Plan Mensual
@@ -84,6 +85,15 @@ export default function PlanDetailModal({ plan, isOpen, onClose }: PlanDetailMod
                   {format(firstDay || new Date(), 'MMMM yyyy', { locale: es })} - {plan.empleado.nombre} {plan.empleado.apellidos}
                 </p>
               </div>
+              
+              {/* Logging Buttons para Cálculo Individual */}
+              <div className="mr-4">
+                <LoggingButtons 
+                  calculationType="individual"
+                  disabled={false}
+                />
+              </div>
+              
               <button
                 type="button"
                 className="bg-white rounded-md text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"

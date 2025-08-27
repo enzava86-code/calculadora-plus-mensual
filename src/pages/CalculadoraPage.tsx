@@ -13,6 +13,7 @@ import toast from 'react-hot-toast';
 
 // Components
 import PlanDetailModal from '../components/Calculadora/PlanDetailModal';
+import LoggingButtons from '../components/UI/LoggingButtons';
 
 // Services and Types
 import { calculadoraService } from '@/services/calculadora';
@@ -161,6 +162,12 @@ export default function CalculadoraPage() {
           </div>
           
           <div className="flex items-center space-x-4">
+            {/* Logging Buttons para Cálculo Masivo */}
+            <LoggingButtons 
+              calculationType="masivo"
+              disabled={loading}
+            />
+            
             {/* Exportar Excel (solo visible si hay resultados) */}
             {resultado && (
               <button

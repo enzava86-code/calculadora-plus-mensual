@@ -8,6 +8,7 @@ import {
 } from '@/types/plan';
 import { Empleado } from '@/types/empleado';
 import { Proyecto } from '@/types/proyecto';
+import { logger } from './logger';
 import { dbService } from './databaseConfig';
 import { calendarioService } from './calendario';
 
@@ -469,6 +470,9 @@ export class CalculadoraPlusService {
   }> {
     const tiempoInicio = Date.now();
     
+    // Iniciar captura de logs masivos
+    logger.startCapture(`Cálculo Masivo - ${mes}/${año}`);
+    
     console.log(`🏭 INICIO CÁLCULO MASIVO: ${mes}/${año} para todos los empleados`);
     
     try {
@@ -536,12 +540,17 @@ export class CalculadoraPlusService {
       console.log(`   Con errores: ${resumenGeneral.empleadosConErrores}`);
       console.log(`   Tiempo total: ${tiempoTotal}ms`);
 
+      // Detener captura de logs masivos
+      logger.stopCapture();
+
       return {
         planesGenerados,
         resumenGeneral
       };
 
     } catch (error) {
+      // Detener captura de logs en caso de error
+      logger.stopCapture();
       throw new Error(`Error en cálculo masivo: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
   }
@@ -601,6 +610,9 @@ export class CalculadoraPlusService {
     proyectos: Proyecto[],
     parametros: ParametrosCalculo
   ): Promise<PlanMensual> {
+    
+    // Iniciar captura de logs
+    logger.startCapture(`Cálculo Individual - ${empleado.nombre} (${objetivoMensual}€)`);
     
     console.log(`🎯 ALGORITMO MEJORADO: Objetivo ${objetivoMensual}€, Días: ${diasLaborables.length}, Proyectos: ${proyectos.length}`);
     
@@ -664,6 +676,9 @@ export class CalculadoraPlusService {
       estado: 'borrador',
       notas: `Algoritmo Híbrido v2.1 - Diferencia: ${Math.abs(totalReal - objetivoMensual).toFixed(2)}€ - ${bloques.length} bloques consecutivos`,
     };
+
+    // Detener captura de logs
+    logger.stopCapture();
 
     return plan;
   }
