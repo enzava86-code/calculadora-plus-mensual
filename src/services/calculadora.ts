@@ -826,8 +826,14 @@ export class CalculadoraPlusService {
     let mejorTotal = resultado.total;
     let menorDiferencia = Math.abs(mejorTotal - objetivo);
     
-    // Si no encontramos buena combinación múltiple, usar algoritmo simple
-    if (mejorCombinacion.length === 0 || menorDiferencia > objetivo * 0.1) {
+    console.log(`🔍 VALIDANDO RESULTADO ALTERNANCIA: €${mejorTotal.toFixed(2)} vs objetivo €${objetivo}`);
+    console.log(`📊 Diferencia: €${menorDiferencia.toFixed(2)} (${(menorDiferencia/objetivo*100).toFixed(1)}%)`);
+    
+    // CRITICAL FIX: Solo usar algoritmo simple si NO hay combinación válida (eliminada condición de tolerancia)
+    // La alternancia SIEMPRE es mejor que la solución simple, sin importar la diferencia
+    if (mejorCombinacion.length === 0) {
+      console.log(`⚠️ FALLBACK: Sin combinación válida, usando algoritmo simple`);
+      
       const proyectoOptimo = proyectosOrdenados[0];
       let diasNecesarios = Math.round(objetivo / proyectoOptimo.valorPorDia);
       
@@ -841,6 +847,10 @@ export class CalculadoraPlusService {
         dias: diasNecesarios,
         valorPorDia: proyectoOptimo.valorPorDia
       }];
+      
+      console.log(`🔧 SOLUCIÓN SIMPLE: ${diasNecesarios} días × €${proyectoOptimo.valorPorDia.toFixed(2)} = €${mejorTotal.toFixed(2)}`);
+    } else {
+      console.log(`✅ USANDO RESULTADO ALTERNANCIA: €${mejorTotal.toFixed(2)} con ${mejorCombinacion.length} bloques`);
     }
     
     const diferencia = Math.abs(mejorTotal - objetivo);
