@@ -924,8 +924,35 @@ export class CalculadoraPlusService {
       console.log(`⏳ Días restantes: ${diasRestantes}, Consecutivos actuales: ${diasConsecutivosActual}`);
       console.log(`🔄 Requiere alternancia: ${requiereAlternancia ? 'SÍ' : 'NO'}`);
 
+      // NUEVA LÓGICA: Optimización para días finales
+      // Si quedan pocos días y el proyecto primario es más eficiente, usarlo en lugar del alternativo
+      let proyectoOriginal = proyectoActual;
+      let optimizacionFinal = false;
+      
+      if (requiereAlternancia && diasRestantes <= 3 && diasRestantes > 0) {
+        const objetivoRestante = objetivo - valorAcumulado;
+        const valorConProyectoActual = diasRestantes * proyectoActual.valorPorDia;
+        const valorConProyectoPrimario = diasRestantes * proyectoPrimario.valorPorDia;
+        const diferenciaActual = Math.abs((valorAcumulado + valorConProyectoActual) - objetivo);
+        const diferenciaPrimario = Math.abs((valorAcumulado + valorConProyectoPrimario) - objetivo);
+        
+        console.log(`\n🧠 ANÁLISIS DÍAS FINALES (${diasRestantes} días restantes):`);
+        console.log(`   📊 Objetivo restante: €${objetivoRestante.toFixed(2)}`);
+        console.log(`   🔄 Con ${proyectoActual.proyecto.nombre}: €${valorConProyectoActual.toFixed(2)} → diff €${diferenciaActual.toFixed(2)}`);
+        console.log(`   🥇 Con ${proyectoPrimario.proyecto.nombre}: €${valorConProyectoPrimario.toFixed(2)} → diff €${diferenciaPrimario.toFixed(2)}`);
+        
+        if (diferenciaPrimario < diferenciaActual && proyectoPrimario !== proyectoActual) {
+          console.log(`   ⚡ OPTIMIZACIÓN FINAL: Cambio a proyecto primario (mejor precisión)`);
+          proyectoActual = proyectoPrimario;
+          optimizacionFinal = true;
+          requiereAlternancia = false; // Desactivar alternancia para estos días finales
+        } else {
+          console.log(`   ➡️ Sin cambios: proyecto actual es óptimo para días finales`);
+        }
+      }
+
       // Determinar cuántos días asignar en este bloque
-      if (requiereAlternancia) {
+      if (requiereAlternancia && !optimizacionFinal) {
         // Estamos en alternancia forzosa, usar mínimo 2 días
         diasEnEsteBloque = Math.max(MIN_DIAS_ALTERNANCIA, 
           Math.min(parametros.diasMinimosBloque, diasRestantes));
@@ -1024,8 +1051,12 @@ export class CalculadoraPlusService {
       console.log(`   📊 Consecutivos: ${diasConsecutivosActual}/${MAX_DIAS_CONSECUTIVOS}`);
       console.log(`   🔄 Necesita cambio: ${necesitaCambio ? 'SÍ' : 'NO'}`);
       console.log(`   ✅ Completo alternancia: ${completoAlternancia ? 'SÍ' : 'NO'}`);
+      console.log(`   🧠 Optimización final activa: ${optimizacionFinal ? 'SÍ' : 'NO'}`);
 
-      if (necesitaCambio && !requiereAlternancia) {
+      // No aplicar lógica de alternancia si acabamos de hacer optimización final
+      if (optimizacionFinal) {
+        console.log(`🧠 OPTIMIZACIÓN FINAL: Saltando lógica de alternancia para días finales`);
+      } else if (necesitaCambio && !requiereAlternancia) {
         // Forzar cambio de proyecto después de 5 días consecutivos
         const proyectoAnterior = proyectoActual.proyecto.nombre;
         proyectoActual = proyectoActual === proyectoPrimario ? proyectoSecundario : proyectoPrimario;
